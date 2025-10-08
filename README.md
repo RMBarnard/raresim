@@ -7,11 +7,23 @@
 Python interface for flexible simulation of rare-variant genetic data using real haplotypes
 
 
-## Installation Steps
+## Installation
+
+### From PyPI
+```bash
+pip install raresim
 ```
-$ cd ~
-$ conda activate
-$ pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ raresim==3.0.0
+
+### From TestPyPI (for testing pre-releases)
+```bash
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ raresim
+```
+
+### From Source
+```bash
+git clone https://github.com/RMBarnard/raresim.git
+cd raresim
+pip install -e .  # Install in development mode
 ```
 
 ## Main Functions
@@ -57,7 +69,7 @@ options:
 ```
 
 * #### default population parameters
-The expected number of functional and synonymous variants can be estimated using default paramters for the following populations: African (AFR), East Asian (EAS), Non-Finnish European (NFE), and South Asian (SAS).
+The expected number of functional and synonymous variants can be estimated using default parameters for the following populations: African (AFR), East Asian (EAS), Non-Finnish European (NFE), and South Asian (SAS).
 ```
 $ python3 -m raresim calc \
     --mac data/mac_bins.csv \
@@ -68,30 +80,29 @@ $ python3 -m raresim calc \
 ```
 
 * #### target data
-The user can also use their own target data - this is necessary to calculate the expected number of functional and/or synonymous variants for stratified simulations. Note, the simulation paramters are output if the user wants to use them instead of target data for future simulations.
-(add target data to repo)
-```
-$ python3 -m raresim calc
-    --mac data/mac_bins.csv
-    -o <output file>
-    -N 15000
-   --nvar_target_data chr19_block37_NFE_nvar_target_data.txt
-   --afs_target_data chr19_block37_NFE_AFS_target_data.txt
-   --reg_size 19.029
+The user can also use their own target data - this is necessary to calculate the expected number of functional and/or synonymous variants for stratified simulations. Note, the simulation parameters are output if the user wants to use them instead of target data for future simulations.
+```bash
+$ python3 -m raresim calc \
+    --mac data/mac_bins.csv \
+    -o <output file> \
+    -N 15000 \
+    --nvar_target_data data/chr19_block37_NFE_nvar_target_data.txt \
+    --afs_target_data data/chr19_block37_NFE_AFS_target_data.txt \
+    --reg_size 19.029
 ```
 
 * #### user-provided parameters
 If parameters are known from previous simulations, the user can provide those instead of having to provide and fit target data.
-```
-$ python3 -m raresim calc
-    --mac data/mac_bins.csv
-    -o <output file>
-    -N 15000
-    --alpha 1.5
-    --beta -.25
-    -b .25
-    --omega .15
-    --phi .65
+```bash
+$ python3 -m raresim calc \
+    --mac data/mac_bins.csv \
+    -o <output file> \
+    -N 15000 \
+    --alpha 1.5 \
+    --beta -.25 \
+    -b .25 \
+    --omega .15 \
+    --phi .65 \
     --reg_size 19.029
 ```
 
@@ -142,7 +153,9 @@ options:
                         the actual number of variants for a MAC bin must be more than the given
                         percentage different from the expected number to activate pruning on the bin
                         (default value of 10)
-  --verbose             
+  --verbose             when using --keep_protected and this flag, the program will additionally print
+                        the before and after Allele Frequency Distributions with the protected variants
+                        pulled out
 ```
 
 ```
@@ -235,7 +248,7 @@ Writing new haplotype file...........
 ```
 
 * #### only functional/synonymous variants
-To pruned only functional or only synonymous variants:
+To prune only functional or only synonymous variants:
 1. add a column to the legend file (`-l`) named "fun", where functional variants have the value "fun" and synonymous variants have the value "syn"
 2. provide a MAC bin file with the expected number of variants per bin for only functional (`--f_only`) or only synonymous (`--s_only`) variants
 ```
@@ -270,6 +283,21 @@ $ python3 -m raresim sim \
     -L out.test
 ```
 
+### CONVERT
+Convert haplotype files between different formats (.haps, .haps.gz, .sm).
+```
+options:
+  -h, --help            show this help message and exit
+  -i INPUT_FILE         Input haplotype file (can be .haps, .sm, or .gz file)
+  -o OUTPUT_FILE        Output haplotype file
+```
+
+```bash
+$ python3 -m raresim convert \
+    -i data/input.haps.gz \
+    -o output.sm
+```
+
 ### EXTRACT
 Randomly extract a subset of haplotypes (.haps-sample.gz) and output the remaining haplotypes separately (.haps-remainder.gz).
 ```
@@ -281,10 +309,18 @@ options:
   -n NUM                Number of haplotypes to extract
 ```
 
-```
+```bash
 $ python3 -m raresim extract \
-    -i lib/raresim/test/data/Simulated_80k_9.controls.haps.gz \
+    -i data/Simulated_80k_9.controls.haps.gz \
     -o extracted_hap_subset.haps.gz \
     -n 20 \
     --seed 123
 ```
+
+## Additional Resources
+
+- **Testing Documentation**: See [TESTING.md](TESTING.md) for information about running tests
+- **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on contributing to the project
+- **Test Coverage Report**: See [TEST_COVERAGE_REPORT.md](TEST_COVERAGE_REPORT.md) for detailed coverage information
+- **GitHub Repository**: [https://github.com/RMBarnard/raresim](https://github.com/RMBarnard/raresim)
+- **Issues**: Report bugs or request features at [https://github.com/RMBarnard/raresim/issues](https://github.com/RMBarnard/raresim/issues)
