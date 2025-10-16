@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from operator import itemgetter
+
 from raresim.engine.config import RunConfig
 from raresim.engine.utils import *
 
@@ -61,15 +63,16 @@ class StandardPruner(Pruner):
         print_bin(self.__bins, bin_assignments)
 
         rows_to_keep = self.get_all_kept_rows(bin_assignments, extra_rows)
+        
+        for row_id in extra_rows:
+            self.__matrix.prune_row(row_id, self.__matrix.row_num(row_id))
 
         if self.__config.args.remove_zeroed_rows:
             z_flag(self.__config.args, self.__matrix, self.__legend, rows_to_keep)
-
-        rows_to_remove = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
-
-        for rowId in rows_to_remove[::-1]:
-            self.__legend.remove_row(rowId)
-            self.__matrix.remove_row(rowId)
+        else:
+            rows_to_prune = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
+            for rowId in rows_to_prune:
+                self.__matrix.prune_row(rowId, self.__matrix.row_num(rowId))
 
     @staticmethod
     def get_all_kept_rows(bin_assignments: dict, extra_rows: list) -> list:
@@ -209,15 +212,21 @@ class FunctionalSplitPruner(Pruner):
             print_bin(self.__bins, bin_assignments)
 
         rows_to_keep = self.get_all_kept_rows(bin_assignments, extra_rows)
-
-        if not self.__config.remove_zeroed_rows:
+        
+        if isinstance(extra_rows, dict):
+            leftovers = [item for sublist in extra_rows.values() for item in sublist]
+        else:
+            leftovers = extra_rows
+        
+        for row_id in leftovers:
+            self.__matrix.prune_row(row_id, self.__matrix.row_num(row_id))
+            
+        if self.__config.remove_zeroed_rows:
             z_flag(self.__config.args, self.__matrix, self.__legend, rows_to_keep)
-
-        rows_to_remove = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
-
-        for rowId in rows_to_remove[::-1]:
-            self.__legend.remove_row(rowId)
-            self.__matrix.remove_row(rowId)
+        else:
+            rows_to_prune = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
+            for rowId in rows_to_prune:
+                self.__matrix.prune_row(rowId, self.__matrix.row_num(rowId))
 
 
     def get_all_kept_rows(self, bin_assignments, extra_rows) -> list:
@@ -266,7 +275,8 @@ class FunctionalSplitPruner(Pruner):
 
         if isinstance(extra_rows, dict):
             extra_rows = [item for sublist in extra_rows.values() for item in sublist]
-        return list(sorted(all_kept_rows + extra_rows))
+        extra_rows.sort()
+        return list(sorted(all_kept_rows))
 
 
     def assign_bins(self) -> dict:
@@ -296,10 +306,20 @@ class FunctionalSplitPruner(Pruner):
         for row in range(self.__matrix.num_rows()):
             row_num = self.__matrix.row_num(row)
             if row_num > 0:
+                if self.__config.run_type == 'fun_only':
+                    if self.__legend[row_i]['fun'] != 'fun':
+                        row_i += 1
+                        continue    
+                elif self.__config.run_type == 'syn_only':
+                    if self.__legend[row_i]['fun'] != 'syn':
+                        row_i += 1
+                        continue    
                 bin_id = self.get_bin(row_num)
+                
                 target_map = bin_assignments
                 if self.__config.run_type == 'func_split':
                     target_map = bin_assignments[self.__legend[row_i]['fun']]
+                    
                 if bin_id not in target_map:
                     target_map[bin_id] = []
                 target_map[bin_id].append(row_i)
