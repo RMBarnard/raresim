@@ -107,7 +107,7 @@ class DefaultRunner:
         if mode == "func_split":
             return FunctionalSplitPruner(self.runConfig, bins, legend, matrix)
         if mode == "fun_only" or mode == "syn_only":
-            return FunctionalSplitPruner(self.runConfig, bins, legend, matrix)
+            return StandardPruner(self.runConfig, bins, legend, matrix)
         if mode == "syn_only":
             return FunctionalSplitPruner(self.runConfig, bins, legend, matrix)
         if mode == "probabilistic":

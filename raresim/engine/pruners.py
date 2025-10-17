@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from operator import itemgetter
 
 from raresim.engine.config import RunConfig
 from raresim.engine.utils import *
@@ -62,20 +61,28 @@ class StandardPruner(Pruner):
         print('\nNew allele frequency distribution:')
         print_bin(self.__bins, bin_assignments)
 
-        rows_to_keep = self.get_all_kept_rows(bin_assignments, extra_rows)
-        
-        for row_id in extra_rows:
-            self.__matrix.prune_row(row_id, self.__matrix.row_num(row_id))
+        rows_to_keep = self.get_all_kept_rows(bin_assignments)
 
-        if self.__config.args.remove_zeroed_rows:
-            z_flag(self.__config.args, self.__matrix, self.__legend, rows_to_keep)
-        else:
-            rows_to_prune = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
-            for rowId in rows_to_prune:
-                self.__matrix.prune_row(rowId, self.__matrix.row_num(rowId))
+        trimmed_vars_file = open(
+            f'{self.__config.args.output_legend if self.__config.args.output_legend is not None else self.__config.args.input_legend}-pruned-variants', 'w')
+        trimmed_vars_file.write("\t".join(self.__legend.get_header()) + '\n')
+        for row in range(self.__matrix.num_rows()):
+            if row not in rows_to_keep:
+                trimmed_vars_file.write("\t".join([y for x, y in self.__legend[row].items()]) + '\n')
+                self.__matrix.prune_row(row, self.__matrix.row_num(row))
+                if self.__matrix.row_num(row) != 0:
+                    raise Exception(
+                        "ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file.")
 
-    @staticmethod
-    def get_all_kept_rows(bin_assignments: dict, extra_rows: list) -> list:
+        rows_to_keep.sort()
+        trimmed_vars_file.close()
+        if self.__config.remove_zeroed_rows:
+            rows_to_remove = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
+            for rowId in rows_to_remove[::-1]:
+                self.__legend.remove_row(rowId)
+                self.__matrix.remove_row(rowId)
+
+    def get_all_kept_rows(self, bin_assignments: dict) -> list:
         """
         Return a list of all row IDs that are kept after pruning.
 
@@ -83,8 +90,6 @@ class StandardPruner(Pruner):
         ----------
         bin_assignments : dict
             A dictionary mapping bin IDs to lists of row IDs assigned to each bin.
-        extra_rows : list
-            A list of row IDs that were not assigned to any bin, but are still kept.
 
         Returns
         -------
@@ -92,10 +97,21 @@ class StandardPruner(Pruner):
             A list of all row IDs that are kept after pruning.
         """
         all_kept_rows = []
-        for bin_id in range(len(bin_assignments)):
+        mode = self.__config.run_type
+        for bin_id in bin_assignments:
             all_kept_rows += bin_assignments[bin_id]
+            
+        if mode == 'fun_only':
+            for row_id in range(self.__legend.row_count()):
+                if self.__legend[row_id]['fun'] == 'syn':
+                    all_kept_rows.append(row_id)
+
+        elif mode == 'syn_only':
+            for row_id in range(self.__legend.row_count()):
+                if self.__legend[row_id]['fun'] == 'fun':
+                    all_kept_rows.append(row_id)
+                    
         all_kept_rows.sort()
-        extra_rows.sort()
         return list(dict.fromkeys(all_kept_rows))
 
     def get_bin(self, val):
@@ -138,6 +154,14 @@ class StandardPruner(Pruner):
         for row in range(self.__matrix.num_rows()):
             row_num = self.__matrix.row_num(row)
             if row_num > 0:
+                if self.__config.run_type == 'fun_only':
+                    if self.__legend[row_i]['fun'] != 'fun':
+                        row_i += 1
+                        continue
+                elif self.__config.run_type == 'syn_only':
+                    if self.__legend[row_i]['fun'] != 'syn':
+                        row_i += 1
+                        continue
                 bin_id = self.get_bin(row_num)
                 target_map = bin_assignments
                 if bin_id not in target_map:
@@ -172,64 +196,53 @@ class FunctionalSplitPruner(Pruner):
         :rtype: list
         """
         bin_assignments = self.assign_bins()
-        mode = self.__config.run_type
 
         print('Input allele frequency distribution:')
-        if mode == 'func_split':
-            print('Functional')
-            print_bin(self.__bins['fun'], bin_assignments['fun'])
-            print('\nSynonymous')
-            print_bin(self.__bins['syn'], bin_assignments['syn'])
-        elif mode == 'fun_only':
-            print('Functional')
-            print_bin(self.__bins, bin_assignments)
-        elif mode == 'syn_only':
-            print('Synonymous')
-            print_bin(self.__bins, bin_assignments)
+        print('Functional')
+        print_bin(self.__bins['fun'], bin_assignments['fun'])
+        print('\nSynonymous')
+        print_bin(self.__bins['syn'], bin_assignments['syn'])
 
         extra_rows = []
 
-        if mode == 'func_split':
-            extra_rows = {'fun': [], 'syn': []}
-            prune_bins(extra_rows['fun'], bin_assignments['fun'], self.__legend, self.__matrix, self.__bins['fun'], self.__config.activation_threshold, self.__config.stop_threshold)
-            prune_bins(extra_rows['syn'], bin_assignments['syn'], self.__legend, self.__matrix, self.__bins['syn'], self.__config.activation_threshold, self.__config.stop_threshold)
-        elif mode == 'fun_only':
-            prune_bins(extra_rows, bin_assignments, self.__legend, self.__matrix, self.__bins, self.__config.activation_threshold, self.__config.stop_threshold)
-        elif mode == 'syn_only':
-            prune_bins(extra_rows, bin_assignments, self.__legend, self.__matrix, self.__bins, self.__config.activation_threshold, self.__config.stop_threshold)
+        extra_rows = {'fun': [], 'syn': []}
+        prune_bins(extra_rows['fun'], bin_assignments['fun'], self.__legend, self.__matrix, self.__bins['fun'], self.__config.activation_threshold, self.__config.stop_threshold)
+        prune_bins(extra_rows['syn'], bin_assignments['syn'], self.__legend, self.__matrix, self.__bins['syn'], self.__config.activation_threshold, self.__config.stop_threshold)
 
         print('\nNew allele frequency distribution:')
-        if mode == 'func_split':
-            print('Functional')
-            print_bin(self.__bins['fun'], bin_assignments['fun'])
-            print('\nSynonymous')
-            print_bin(self.__bins['syn'], bin_assignments['syn'])
-        elif mode == 'fun_only':
-            print('Functional')
-            print_bin(self.__bins, bin_assignments)
-        elif mode == 'syn_only':
-            print('Synonymous')
-            print_bin(self.__bins, bin_assignments)
+        print('Functional')
+        print_bin(self.__bins['fun'], bin_assignments['fun'])
+        print('\nSynonymous')
+        print_bin(self.__bins['syn'], bin_assignments['syn'])
 
-        rows_to_keep = self.get_all_kept_rows(bin_assignments, extra_rows)
+        rows_to_keep = self.get_all_kept_rows(bin_assignments)
         
-        if isinstance(extra_rows, dict):
-            leftovers = [item for sublist in extra_rows.values() for item in sublist]
-        else:
-            leftovers = extra_rows
+        leftovers = [item for sublist in extra_rows.values() for item in sublist]
         
         for row_id in leftovers:
             self.__matrix.prune_row(row_id, self.__matrix.row_num(row_id))
-            
+
+        trimmed_vars_file = open(
+            f'{self.__config.args.output_legend if self.__config.args.output_legend is not None else self.__config.args.input_legend}-pruned-variants', 'w')
+        trimmed_vars_file.write("\t".join(self.__legend.get_header()) + '\n')
+        for row in range(self.__matrix.num_rows()):
+            if row not in rows_to_keep:
+                trimmed_vars_file.write("\t".join([y for x, y in self.__legend[row].items()]) + '\n')
+                self.__matrix.prune_row(row, self.__matrix.row_num(row))
+                if self.__matrix.row_num(row) != 0:
+                    raise Exception(
+                        "ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file.")
+
+        rows_to_keep.sort()
+        trimmed_vars_file.close()
         if self.__config.remove_zeroed_rows:
-            z_flag(self.__config.args, self.__matrix, self.__legend, rows_to_keep)
-        else:
-            rows_to_prune = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
-            for rowId in rows_to_prune:
-                self.__matrix.prune_row(rowId, self.__matrix.row_num(rowId))
+            rows_to_remove = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
+            for rowId in rows_to_remove[::-1]:
+                self.__legend.remove_row(rowId)
+                self.__matrix.remove_row(rowId)
 
 
-    def get_all_kept_rows(self, bin_assignments, extra_rows) -> list:
+    def get_all_kept_rows(self, bin_assignments) -> list:
         """
         Return a list of all row IDs that are kept after pruning.
 
@@ -237,45 +250,19 @@ class FunctionalSplitPruner(Pruner):
         ----------
         bin_assignments : dict
             A dictionary mapping bin IDs to lists of row IDs assigned to each bin.
-        extra_rows : list or dict
-            A list of row IDs that were not assigned to any bin, but are still kept.
 
         Returns
         -------
         list
             A list of all row IDs that are kept after pruning.
         """
-        mode = self.__config.run_type
         all_kept_rows = []
-        if mode == 'func_split':
-            for bin_id in range(len(bin_assignments['fun'])):
-                all_kept_rows += bin_assignments['fun'][bin_id]
-            for bin_id in range(len(bin_assignments['syn'])):
-                all_kept_rows += bin_assignments['syn'][bin_id]
+        for bin_id in range(len(bin_assignments['fun'])):
+            all_kept_rows += bin_assignments['fun'][bin_id]
+        for bin_id in range(len(bin_assignments['syn'])):
+            all_kept_rows += bin_assignments['syn'][bin_id]
 
-        elif mode == 'fun_only':
-            for bin_id in bin_assignments:
-                all_kept_rows += bin_assignments[bin_id]
-            for row_id in range(self.__legend.row_count()):
-                if self.__legend[row_id]['fun'] == 'syn':
-                    all_kept_rows.append(row_id)
 
-        elif mode == 'syn_only':
-            for bin_id in bin_assignments:
-                all_kept_rows += bin_assignments[bin_id]
-            for row_id in range(self.__legend.row_count()):
-                if self.__legend[row_id]['fun'] == 'fun':
-                    all_kept_rows.append(row_id)
-
-        else:
-            for bin_id in bin_assignments['fun']:
-                all_kept_rows += bin_assignments['fun'][bin_id]
-            for bin_id in bin_assignments['syn']:
-                all_kept_rows += bin_assignments['syn'][bin_id]
-
-        if isinstance(extra_rows, dict):
-            extra_rows = [item for sublist in extra_rows.values() for item in sublist]
-        extra_rows.sort()
         return list(sorted(all_kept_rows))
 
 
@@ -293,32 +280,20 @@ class FunctionalSplitPruner(Pruner):
             A dictionary where keys are bin groups ('fun' or 'syn') and values are dictionaries
             mapping bin indices to lists of row indices in the matrix that belong to each bin.
         """
-        bin_assignments = {}
-        if self.__config.run_type == 'func_split':
-            bin_assignments = {
-                'fun': {bin_id: [] for bin_id in range(len(self.__bins['fun']) + 1)},
-                'syn': {bin_id: [] for bin_id in range(len(self.__bins['syn']) + 1)}
-            }
-        else:
-            bin_assignments = {bin_id: [] for bin_id in range(len(self.__bins) + 1)}
+        
+        bin_assignments = {
+            'fun': {bin_id: [] for bin_id in range(len(self.__bins['fun']) + 1)},
+            'syn': {bin_id: [] for bin_id in range(len(self.__bins['syn']) + 1)}
+        }
 
         row_i = 0
         for row in range(self.__matrix.num_rows()):
             row_num = self.__matrix.row_num(row)
             if row_num > 0:
-                if self.__config.run_type == 'fun_only':
-                    if self.__legend[row_i]['fun'] != 'fun':
-                        row_i += 1
-                        continue    
-                elif self.__config.run_type == 'syn_only':
-                    if self.__legend[row_i]['fun'] != 'syn':
-                        row_i += 1
-                        continue    
+               
                 bin_id = self.get_bin(row_num)
                 
-                target_map = bin_assignments
-                if self.__config.run_type == 'func_split':
-                    target_map = bin_assignments[self.__legend[row_i]['fun']]
+                target_map = bin_assignments[self.__legend[row_i]['fun']]
                     
                 if bin_id not in target_map:
                     target_map[bin_id] = []
@@ -344,10 +319,7 @@ class FunctionalSplitPruner(Pruner):
         int
             The index of the bin in which the value was found, or the length of the bins if the value was not found.
         """
-        if self.__config.run_type == 'func_split':
-            bins = self.__bins[self.__legend[row_id]['fun']]
-        else:
-            bins = self.__bins
+        bins = self.__bins[self.__legend[row_id]['fun']]
         for i in range(len(bins)):
             if bins[i][0] <= val <= bins[i][1]:
                 return i
