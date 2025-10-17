@@ -203,12 +203,32 @@ class FunctionalSplitPruner(Pruner):
         print('\nSynonymous')
         print_bin(self.__bins['syn'], bin_assignments['syn'])
 
+        protected_vars_per_bin = {}
+        if self.__config.args.keep_protected:
+            protected_vars_per_bin['fun'] = adjust_for_protected_variants(self.__bins['fun'], bin_assignments['fun'], self.__legend)
+            protected_vars_per_bin['syn'] = adjust_for_protected_variants(self.__bins['syn'], bin_assignments['syn'], self.__legend)
+            if self.__config.args.verbose:
+                print("Input allele frequency distribution (with protected variants pulled out):")
+                print('Functional')
+                print_bin(self.__bins['fun'], bin_assignments['fun'])
+                print('\nSynonymous')
+                print_bin(self.__bins['syn'], bin_assignments['syn'])
         extra_rows = []
 
         extra_rows = {'fun': [], 'syn': []}
         prune_bins(extra_rows['fun'], bin_assignments['fun'], self.__legend, self.__matrix, self.__bins['fun'], self.__config.activation_threshold, self.__config.stop_threshold)
         prune_bins(extra_rows['syn'], bin_assignments['syn'], self.__legend, self.__matrix, self.__bins['syn'], self.__config.activation_threshold, self.__config.stop_threshold)
 
+        if self.__config.args.keep_protected:
+            if self.__config.args.verbose:
+                print("Input allele frequency distribution (without protected variants added back):")
+                print('Functional')
+                print_bin(self.__bins['fun'], bin_assignments['fun'])
+                print('\nSynonymous')
+                print_bin(self.__bins['syn'], bin_assignments['syn'])
+            add_protected_rows_back(self.__bins['fun'], bin_assignments['fun'], protected_vars_per_bin['fun'])
+            add_protected_rows_back(self.__bins['syn'], bin_assignments['syn'], protected_vars_per_bin['syn'])
+            
         print('\nNew allele frequency distribution:')
         print('Functional')
         print_bin(self.__bins['fun'], bin_assignments['fun'])
@@ -217,11 +237,6 @@ class FunctionalSplitPruner(Pruner):
 
         rows_to_keep = self.get_all_kept_rows(bin_assignments)
         
-        leftovers = [item for sublist in extra_rows.values() for item in sublist]
-        
-        for row_id in leftovers:
-            self.__matrix.prune_row(row_id, self.__matrix.row_num(row_id))
-
         trimmed_vars_file = open(
             f'{self.__config.args.output_legend if self.__config.args.output_legend is not None else self.__config.args.input_legend}-pruned-variants', 'w')
         trimmed_vars_file.write("\t".join(self.__legend.get_header()) + '\n')
