@@ -29,10 +29,10 @@ class TestBins(unittest.TestCase):
         bins = loadBins(self.bins_file)
         
         self.assertEqual(len(bins), 4)
-        self.assertEqual(bins[0], (1, 1, 20.5))
-        self.assertEqual(bins[1], (2, 2, 10.3))
-        self.assertEqual(bins[2], (3, 5, 5.7))
-        self.assertEqual(bins[3], (6, 10, 3.2))
+        self.assertEqual(bins[0], [1, 1, 20.5])
+        self.assertEqual(bins[1], [2, 2, 10.3])
+        self.assertEqual(bins[2], [3, 5, 5.7])
+        self.assertEqual(bins[3], [6, 10, 3.2])
 
     def test_load_bins_with_empty_lines(self):
         """Test loading bins with empty lines at the end"""

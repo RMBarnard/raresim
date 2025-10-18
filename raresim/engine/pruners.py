@@ -54,7 +54,7 @@ class StandardPruner(Pruner):
 
         if self.__config.args.keep_protected:
             if self.__config.args.verbose:
-                print("Input allele frequency distribution (without protected variants added back):")
+                print("Output allele frequency distribution (without protected variants added back):")
                 print_bin(self.__bins, bin_assignments)
             add_protected_rows_back(self.__bins, bin_assignments, protected_vars_per_bin)
 
@@ -221,7 +221,7 @@ class FunctionalSplitPruner(Pruner):
 
         if self.__config.args.keep_protected:
             if self.__config.args.verbose:
-                print("Input allele frequency distribution (without protected variants added back):")
+                print("Output allele frequency distribution (without protected variants added back):")
                 print('Functional')
                 print_bin(self.__bins['fun'], bin_assignments['fun'])
                 print('\nSynonymous')

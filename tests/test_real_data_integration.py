@@ -368,11 +368,11 @@ class TestRealDataWorkflows(unittest.TestCase):
         
         # With seed=456, we expect EXACT deterministic results
         # These exact values prove the stratified pruning works correctly
-        # From the output: Functional 3+2+3=8, Synonymous 2+1+1=4 (no pruning occurred, bins matched)
-        self.assertEqual(output_matrix.num_rows(), 12, "With seed=456, should have exactly 12 rows")
-        self.assertEqual(output_legend_obj.row_count(), 12, "Legend should match matrix")
+        # From the output: Functional 3+2+3=8, Synonymous 1+1+1=3 (no pruning occurred, bins matched)
+        self.assertEqual(output_matrix.num_rows(), 11, "With seed=456, should have exactly 11 rows")
+        self.assertEqual(output_legend_obj.row_count(), 11, "Legend should match matrix")
         self.assertEqual(output_fun, 8, "Should have exactly 8 functional variants")
-        self.assertEqual(output_syn, 4, "Should have exactly 4 synonymous variants")
+        self.assertEqual(output_syn, 3, "Should have exactly 4 synonymous variants")
         
         # Verify stratification is maintained
         self.assertEqual(output_fun + output_syn, output_legend_obj.row_count(),

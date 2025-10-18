@@ -168,26 +168,6 @@ def prune_bins(extra_rows: list, bin_assignments: dict, legend: Legend, matrix: 
                     reserve_pool.remove(row_id)
 
 
-def z_flag(args, matrix: SparseMatrix, legend: Legend, rows_to_keep: list):
-    trimmed_vars_file = open(
-        f'{args.output_legend if args.output_legend is not None else args.input_legend}-pruned-variants', 'w')
-    trimmed_vars_file.write("\t".join(legend.get_header()) + '\n')
-    for row in range(matrix.num_rows()):
-        if row not in rows_to_keep:
-            trimmed_vars_file.write("\t".join([y for x, y in legend[row].items()]) + '\n')
-            matrix.prune_row(row, matrix.row_num(row))
-            if matrix.row_num(row) != 0:
-                raise Exception(
-                    "ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file.")
-
-    rows_to_keep.sort()
-    trimmed_vars_file.close()
-    rows_to_remove = [x for x in range(matrix.num_rows()) if x not in rows_to_keep]
-    for rowId in rows_to_remove[::-1]:
-        legend.remove_row(rowId)
-        matrix.remove_row(rowId)
-
-
 def adjust_for_protected_variants(bins, bin_assignments, legend) -> Dict[int, List]:
     ret = {bin_id: [] for bin_id in range(len(bin_assignments))}
     for bin_id in range(len(bins)):
