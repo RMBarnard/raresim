@@ -14,7 +14,7 @@ from raresim.engine.config import RunConfig
 from raresim.engine.runner import DefaultRunner
 from argparse import Namespace
 
-data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
+data_dir = os.path.join(os.path.dirname(__file__), 'data')
 temp_dir = tempfile.mkdtemp()
 
 print("=" * 60)

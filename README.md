@@ -70,12 +70,12 @@ options:
 
 * #### default population parameters
 The expected number of functional and synonymous variants can be estimated using default parameters for the following populations: African (AFR), East Asian (EAS), Non-Finnish European (NFE), and South Asian (SAS).
-```
+```bash
 $ python3 -m raresim calc \
-    --mac data/mac_bins.csv \
-    -o <output file> \
-    -N 15000 \
-    --pop EAS \
+    --mac data/mac_bins.txt \
+    -o mac_bin_estimates.txt \
+    -N 10000 \
+    --pop NFE \
     --reg_size 19.029
 ```
 
@@ -83,11 +83,13 @@ $ python3 -m raresim calc \
 The user can also use their own target data - this is necessary to calculate the expected number of functional and/or synonymous variants for stratified simulations. Note, the simulation parameters are output if the user wants to use them instead of target data for future simulations.
 ```bash
 $ python3 -m raresim calc \
-    --mac data/mac_bins.csv \
-    -o <output file> \
-    -N 15000 \
-    --nvar_target_data data/chr19_block37_NFE_nvar_target_data.txt \
-    --afs_target_data data/chr19_block37_NFE_AFS_target_data.txt \
+    --mac data/mac_bins.txt \
+    -o mac_bin_estimates_10000_NFE.txt \
+    -N 10000 \
+    --nvar_target_data data/nvar_target.txt \
+    --afs_target_data data/afs_target.txt \
+    --w_fun 1.2 \
+    --w_syn 1.2 \
     --reg_size 19.029
 ```
 
@@ -95,9 +97,9 @@ $ python3 -m raresim calc \
 If parameters are known from previous simulations, the user can provide those instead of having to provide and fit target data.
 ```bash
 $ python3 -m raresim calc \
-    --mac data/mac_bins.csv \
-    -o <output file> \
-    -N 15000 \
+    --mac data/mac_bins.txt \
+    -o mac_bin_estimates.txt \
+    -N 10000 \
     --alpha 1.5 \
     --beta -.25 \
     -b .25 \
@@ -158,13 +160,13 @@ options:
                         pulled out
 ```
 
-```
+```bash
 $ python3 -m raresim sim \
-    -m Simulated_80k_9.controls.haps.gz \
-    -b data/Expected_variants_per_bin_80k.txt \
-    -l data/Simulated_80k.legend \
-    -L new.legend \
-    -H new.hap.gz
+    -m data/haplotypes.haps.gz \
+    -b mac_bin_estimates.txt \
+    -l data/legend.legend \
+    -L output.legend \
+    -H output.haps.gz
 
 Input allele frequency distribution:
 (1, 1, 20.0) 9
@@ -191,14 +193,16 @@ Writing new haplotype file............
 To perform stratified simulations where functional and synonymous variants are pruned separately:
 1. add a column to the legend file (`-l`) named "fun", where functional variants have the value "fun" and synonymous variants have the value "syn"
 2. provide separate MAC bin files with the expected number of variants per bin for functional (`--functional_bins`) and synonymous (`--synonymous_bins`) variants
-```
+```bash
 $ python3 -m raresim sim \
-    -m chr19.block37.NFE.sim100.stratified.haps.gz \
-    --functional_bins data/Expected_variants_functional.txt \
-    --synonymous_bins data/Expected_variants_synonymous.txt \
-    -l data/chr19.block37.NFE.sim100.stratified.legend \
-    -L new.legend \
-    -H new.hap.gz
+    -m data/haplotypes.haps.gz \
+    --functional_bins mac_bin_estimates_10000_NFE_120_fun.txt \
+    --synonymous_bins mac_bin_estimates_10000_NFE_100_syn.txt \
+    --stop_threshold 5 \
+    -l data/legend.legend \
+    -L output_stratified.legend \
+    -H output_stratified.haps.gz \
+    -z
 
 Input allele frequency distribution:
 Functional
@@ -251,36 +255,14 @@ Writing new haplotype file...........
 To prune only functional or only synonymous variants:
 1. add a column to the legend file (`-l`) named "fun", where functional variants have the value "fun" and synonymous variants have the value "syn"
 2. provide a MAC bin file with the expected number of variants per bin for only functional (`--f_only`) or only synonymous (`--s_only`) variants
-```
+```bash
 $ python3 -m raresim sim \
-    -m chr19.block37.NFE.sim100.stratified.haps.gz \
-    --f_only data/Expected_variants_functional.txt \
-    -l data/chr19.block37.NFE.sim100.stratified.legend \
-    -L new.legend \
-    -H new.hap.gz
-```
-
-* #### given probabilities
-To prune variants using known or given probabilities, add a column to the legend file (`-l`) named "prob". A random number between 0 and 1 is generated for each variant, and if the number is greater than the probability, the variant is removed from the data.
-```
-$ python3 -m raresim sim \
-    -m data/ProbExample.haps.gz \
-    -H new.hap.gz \
-    -l data/ProbExample.probs.legend \
-    -prob
-```
-
-* #### protected status
-To exclude protected variants from the pruning process, add a column to the legend file (`-l`) named "protected". Any row with a 0 in this column will be eligible for pruning while any row with a 1 will still be counted but will not be eligible for pruning.
-```
-$ python3 -m raresim sim \
-    -m data/ProbExample.haps.gz \
-    -H new.hap.gz \
-    -l data/ProtectiveExample.legend \
-    --keep_protected \
-    -b data/fonlyBins.txt \
-    --small_sample \
-    -L out.test
+    -m data/haplotypes.haps.gz \
+    --f_only mac_bin_estimates_10000_NFE_100_fun.txt \
+    --stop_threshold 5 \
+    -l data/legend.legend \
+    -L output_fun_only.legend \
+    -H output_fun_only.haps.gz
 ```
 
 ### CONVERT
@@ -294,8 +276,8 @@ options:
 
 ```bash
 $ python3 -m raresim convert \
-    -i data/input.haps.gz \
-    -o output.sm
+    -i data/haplotypes.haps.gz \
+    -o haplotypes.sm
 ```
 
 ### EXTRACT
@@ -311,11 +293,24 @@ options:
 
 ```bash
 $ python3 -m raresim extract \
-    -i data/Simulated_80k_9.controls.haps.gz \
-    -o extracted_hap_subset.haps.gz \
-    -n 20 \
-    --seed 123
+    -i data/haplotypes.haps.gz \
+    -o haplotypes_subset.haps.gz \
+    -n 20000 \
+    --seed 3
 ```
+
+## Complete Workflow Example
+
+For a complete end-to-end workflow example demonstrating how to use RAREsim2 for a full research pipeline, see the bash script in [`example/pruning_code.sh`](example/pruning_code.sh). This script demonstrates:
+
+- Calculating MAC bin estimates using target data with stratification
+- Extracting sample subsets from large haplotype files
+- Performing stratified pruning (functional vs synonymous variants)
+- Using the `--keep_protected` flag to preserve specific variants
+- Creating multiple simulation scenarios for power analysis
+- Complete parameter settings used in published research
+
+The example dataset files referenced in the script are available in the `data/` directory with shortened names for convenience.
 
 ## Additional Resources
 

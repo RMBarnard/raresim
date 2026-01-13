@@ -1,5 +1,5 @@
 """
-Integration tests using real data files from the data/ directory.
+Integration tests using real data files from the tests/data/ directory.
 These tests verify complete end-to-end workflows with actual data and validate outputs.
 No exceptions are caught - tests should pass or fail cleanly.
 Random seeds are set for deterministic testing.
@@ -22,7 +22,7 @@ class TestRealDataWorkflows(unittest.TestCase):
     
     def setUp(self):
         """Set up paths to data files"""
-        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+        self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.temp_dir = tempfile.mkdtemp()
         
     def tearDown(self):
@@ -395,7 +395,7 @@ class TestDataFileIntegrity(unittest.TestCase):
     
     def setUp(self):
         """Set up path to data directory"""
-        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+        self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
     
     def test_all_legend_files_load_correctly(self):
         """Verify all legend files can be loaded without errors"""
