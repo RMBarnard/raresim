@@ -68,44 +68,62 @@ options:
                         stratified simulations (default value of 1)
 ```
 
-#### *Default Population Parameters*
+#### Default Population Parameters
 The expected number of functional and synonymous variants can be estimated using default parameters for the following populations: African (AFR), East Asian (EAS), Non-Finnish European (NFE), and South Asian (SAS).
-```bash
+
+```text
 $ python3 -m raresim calc \
     --mac example/mac_bins.txt \
     -o example/mac_bin_estimates_default.txt \
     -N 10000 \
     --pop NFE \
     --reg_size 19.029
+
+Calculated 842.5888117489534 total variants (accounting for region size)
 ```
 
-#### *Target Data*
+#### Target Data
 The user can also use their own target data - this is necessary to calculate the expected number of functional and/or synonymous variants for stratified simulations. Note, the simulation parameters are output if the user wants to use them instead of target data for future simulations.
-```bash
+
+```text
 $ python3 -m raresim calc \
     --mac example/mac_bins.txt \
-    -o example/mac_bin_estimates_target_120.txt \
+    -o example/mac_bin_estimates_target.txt \
     -N 10000 \
     --nvar_target_data example/nvar_target.txt \
     --afs_target_data example/afs_target.txt \
-    --w_fun 1.2 \
-    --w_syn 1.2 \
     --reg_size 19.029
+
+Calculating synonymous values
+Calculated the following params from AFS target data. alpha: 1.9397807693228122, beta: 0.34101610369526514, b: 0.8464846288340953
+Calculated the following params from nvar target data. omega: 0.6295595643083463, phi: 0.04392478579419536
+Calculated 275.6537313477067 total variants (accounting for region size)
+
+Calculating functional values
+Calculated the following params from AFS target data. alpha: 2.1388159441481442, beta: 0.4285647164342115, b: 1.134635990601139
+Calculated the following params from nvar target data. omega: 0.6413547202832528, phi: 0.08338724275310817
+Calculated 583.3570639000195 total variants (accounting for region size)
 ```
 
-#### *User-Provided Parameters*
+Note: Two MAC bin estimate files will be output (one for functional variants and another for synonymous variants) if the 
+input AFS file is stratified by functional status. If it's not stratified, then just one file will be output.
+
+#### User-Provided Parameters
 If parameters are known from previous simulations, the user can provide those instead of having to provide and fit target data.
-```bash
+
+```text
 $ python3 -m raresim calc \
     --mac example/mac_bins.txt \
     -o example/mac_bin_estimates_params.txt \
     -N 10000 \
-    --alpha 1.5 \
-    --beta -.25 \
-    -b .25 \
-    --omega .15 \
-    --phi .65 \
+    --alpha 1.947 \
+    --beta 0.118 \
+    -b 0.6676 \
+    --omega 0.6539 \
+    --phi 0.1073 \
     --reg_size 19.029
+
+Calculated 842.5888117489534 total variants (accounting for region size)
 ```
 
 ### SIM
@@ -160,140 +178,221 @@ options:
                         pulled out
 ```
 
-Note: An updated legend file is only output when using the z flag (when pruned variants are removed from the haplotype file). If not using the z flag,
-then the order and amount of rows (i.e., variants) in the haplotype file will remain unchanged and match the input legend file. Also, if the input
-haplotype file contains monomorphic variants (i.e., rows of zeros) when using the z flag, then the .legend-pruned-variants file will contain both
-monomorphic and actual pruned variants.
-
-```bash
+```text
 $ python3 -m raresim sim \
     -m example/example.haps.gz \
-    -b example/mac_bin_estimates_target.txt \
+    -b example/mac_bin_estimates_default.txt \
     -l example/example.legend \
     -L example/output.legend \
     -H example/output.haps.gz \
     -z
 
+Running with run mode: standard
 Input allele frequency distribution:
-(1, 1, 20.0) 9
-(2, 2, 10.0) 5
-(3, 5, 5.0) 6
-(6, 10, 5.0) 7
-(11, 20, 1.0) 11
-(21, 1000, 0.0) 48
+Bin         Expected          Actual
+[1,1]       452.7055560068    1002
+[2,2]       130.4830742030    484
+[3,5]       120.6258509819    768
+[6,10]      52.2181585555     663
+[11,20]     29.5461366439     681
+[21,100]    26.2774091990     856
+[101,200]   3.6164427260      79
+[201,∞]     N/A               65
 
 New allele frequency distribution:
-(1, 1, 20.0) 15
-(2, 2, 10.0) 11
-(3, 5, 5.0) 6
-(6, 10, 5.0) 3
-(11, 20, 1.0) 1
-(21, 1000, 0.0) 0
+Bin         Expected          Actual
+[1,1]       452.7055560068    472
+[2,2]       130.4830742030    119
+[3,5]       120.6258509819    110
+[6,10]      52.2181585555     48
+[11,20]     29.5461366439     28
+[21,100]    26.2774091990     47
+[101,200]   3.6164427260      3
+[201,∞]     N/A               65
 
 Writing new variant legend
 
-Writing new haplotype file............
+Writing new haplotype file
+[====================] 100%
 ```
+Note: An updated legend file is only output when using the z flag (when pruned variants are removed from the haplotype file). If not using the z flag,
+then the order and amount of rows (i.e., variants) in the haplotype file will remain unchanged and match the input legend file. Also, if the input
+haplotype file contains monomorphic variants (i.e., rows of zeros) when using the z flag, then the .legend-pruned-variants file will contain both
+monomorphic and actual pruned variants.
 
-#### *Stratified (Functional/Synonymous) Pruning*
+#### Stratified (Functional/Synonymous) Pruning
 To perform stratified simulations where functional and synonymous variants are pruned separately:
 1. add a column to the legend file (`-l`) named "fun", where functional variants have the value "fun" and synonymous variants have the value "syn"
 2. provide separate MAC bin files with the expected number of variants per bin for functional (`--functional_bins`) and synonymous (`--synonymous_bins`) variants
-```bash
+   
+```text
 $ python3 -m raresim sim \
     -m example/example.haps.gz \
-    --functional_bins example/mac_bin_estimates_target_120_fun.txt \
-    --synonymous_bins example/mac_bin_estimates_target_120_syn.txt \
-    --stop_threshold 5 \
+    --functional_bins example/mac_bin_estimates_target_fun.txt \
+    --synonymous_bins example/mac_bin_estimates_target_syn.txt \
     -l example/example.legend \
     -L example/output_stratified.legend \
     -H example/output_stratified.haps.gz \
     -z
 
+Running with run mode: func_split
 Input allele frequency distribution:
 Functional
-[1,1]   610.213692400324    686
-[2,2]   199.745137641156    351
-[3,5]   185.434393821117    598
-[6,10]  73.1664075520905    472
-[11,20] 37.132127271035 432
-[21,220]    34.4401706091422    768
-[221,440]   1.98761248740743    10
-[441, ]     30
+Bin         Expected          Actual
+[1,1]       308.6658613719    706
+[2,2]       99.2199432898     332
+[3,5]       92.6656147375     541
+[6,10]      38.2293812491     463
+[11,20]     19.9237792915     489
+[21,100]    15.1688219483     607
+[101,200]   1.6493333218      52
+[201,∞]     N/A               46
 
 Synonymous
-[1,1]   215.389082675548    276
-[2,2]   73.1166493377018    140
-[3,5]   73.6972836211026    240
-[6,10]  33.4315406970657    181
-[11,20] 19.1432926816897    181
-[21,220]    20.2848171294807    331
-[221,440]   1.38678884898772    11
-[441, ]     20
+Bin         Expected          Actual
+[1,1]       132.0653670095    296
+[2,2]       44.8145869897     152
+[3,5]       45.0536145138     227
+[6,10]      20.7498071235     200
+[11,20]     12.1186468959     192
+[21,100]    11.0509676181     249
+[101,200]   1.5493808935      27
+[201,∞]     N/A               19
 
 New allele frequency distribution:
 Functional
-[1,1]   610.213692400324    607
-[2,2]   199.745137641156    217
-[3,5]   185.434393821117    178
-[6,10]  73.1664075520905    82
-[11,20] 37.132127271035 40
-[21,220]    34.4401706091422    41
-[221,440]   1.98761248740743    1
-[441, ]     30
+Bin         Expected          Actual
+[1,1]       308.6658613719    290
+[2,2]       99.2199432898     99
+[3,5]       92.6656147375     88
+[6,10]      38.2293812491     47
+[11,20]     19.9237792915     18
+[21,100]    15.1688219483     22
+[101,200]   1.6493333218      1
+[201,∞]     N/A               46
 
 Synonymous
-[1,1]   215.389082675548    220
-[2,2]   73.1166493377018    66
-[3,5]   73.6972836211026    63
-[6,10]  33.4315406970657    31
-[11,20] 19.1432926816897    20
-[21,220]    20.2848171294807    20
-[221,440]   1.38678884898772    1
-[441, ]     20
+Bin         Expected          Actual
+[1,1]       132.0653670095    134
+[2,2]       44.8145869897     42
+[3,5]       45.0536145138     51
+[6,10]      20.7498071235     22
+[11,20]     12.1186468959     11
+[21,100]    11.0509676181     11
+[101,200]   1.5493808935      2
+[201,∞]     N/A               19
 
 Writing new variant legend
 
-Writing new haplotype file...........
+Writing new haplotype file
+[====================] 100%
 ```
 
-#### *Only Functional/Synonymous Variants*
+#### Only Functional/Synonymous Variants
 To prune only functional or only synonymous variants:
 1. add a column to the legend file (`-l`) named "fun", where functional variants have the value "fun" and synonymous variants have the value "syn"
 2. provide a MAC bin file with the expected number of variants per bin for only functional (`--f_only`) or only synonymous (`--s_only`) variants
-```bash
+
+```text
 $ python3 -m raresim sim \
     -m example/example.haps.gz \
-    --f_only example/mac_bin_estimates_target_120_fun.txt \
-    --stop_threshold 5 \
+    --f_only example/mac_bin_estimates_target_fun.txt \
     -l example/example.legend \
     -L example/output_fun_only.legend \
     -H example/output_fun_only.haps.gz \
     -z
+
+Running with run mode: fun_only
+Input allele frequency distribution:
+Bin         Expected          Actual
+[1,1]       308.6658613719    706
+[2,2]       99.2199432898     332
+[3,5]       92.6656147375     541
+[6,10]      38.2293812491     463
+[11,20]     19.9237792915     489
+[21,100]    15.1688219483     607
+[101,200]   1.6493333218      52
+[201,∞]     N/A               46
+
+New allele frequency distribution:
+Bin         Expected          Actual
+[1,1]       308.6658613719    312
+[2,2]       99.2199432898     92
+[3,5]       92.6656147375     102
+[6,10]      38.2293812491     38
+[11,20]     19.9237792915     17
+[21,100]    15.1688219483     15
+[101,200]   1.6493333218      2
+[201,∞]     N/A               46
+
+Writing new variant legend
+
+Writing new haplotype file
+[====================] 100%
 ```
 
-#### *Given Probabilities*
+
+#### Given Probabilities
 To prune variants using known or given probabilities, add a column to the legend file (`-l`) named "prob". A random number between 0 and 1 is generated for each variant, and if the number is greater than the probability, the variant is removed from the data.
-```
+
+```text
 $ python3 -m raresim sim \
     -m example/example.haps.gz \
     -l example/example.legend \
     -L example/output_probs.legend \
-    -H example/output_probs.haps.gz
+    -H example/output_probs.haps.gz \
     -prob \
     -z
+
+Running with run mode: probabilistic
+
+Writing new variant legend
+
+Writing new haplotype file
+[====================] 100%
 ```
 
-#### *Protected Status*
+
+#### Protected Status
 To exclude protected variants from the pruning process, add a column to the legend file (`-l`) named "protected". Any row with a 0 in this column will be eligible for pruning while any row with a 1 will still be counted but will not be eligible for pruning.
-```
+
+```text
 $ python3 -m raresim sim \
     -m example/example.haps.gz \
-    -l example/example.legend \
+    -b example/mac_bin_estimates_default.txt \
+    -l example/example.protected.legend \
     -L example/output_protected.legend \
-    -H example/output_protected.haps.gz
+    -H example/output_protected.haps.gz \
     --keep_protected \
     -z
+
+Running with run mode: standard
+Input allele frequency distribution:
+Bin         Expected          Actual
+[1,1]       452.7055560068    1002
+[2,2]       130.4830742030    484
+[3,5]       120.6258509819    768
+[6,10]      52.2181585555     663
+[11,20]     29.5461366439     681
+[21,100]    26.2774091990     856
+[101,200]   3.6164427260      79
+[201,∞]     N/A               65
+
+New allele frequency distribution:
+Bin         Expected          Actual
+[1,1]       452.7055560068    462
+[2,2]       130.4830742030    131
+[3,5]       120.6258509819    123
+[6,10]      52.2181585555     52
+[11,20]     29.5461366439     32
+[21,100]    26.2774091990     25
+[101,200]   3.6164427260      3
+[201,∞]     N/A               65
+
+Writing new variant legend
+
+Writing new haplotype file
+[====================] 100%
 ```
 
 
@@ -302,7 +401,7 @@ Randomly extract a subset of haplotypes (.haps-sample.gz) and output the remaini
 ```
 options:
   -h, --help            show this help message and exit
-  -i INPUT_FILE         Input haplotype file
+  -i INPUT_FILE         Input haplotype file (gzipped)
   -o OUTPUT_FILE        Output haplotype file name
   -s SEED, --seed SEED  Optional seed for reproducibility
   -n NUM                Number of haplotypes to extract
