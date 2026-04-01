@@ -104,6 +104,21 @@ class TestSparseMatrixReader(unittest.TestCase):
         self.assertEqual(matrix.get(0, 1), 1)
         self.assertEqual(matrix.get(1, 2), 1)
 
+    def test_load_uncompressed_ignores_trailing_whitespace(self):
+        """Trailing spaces should not create an extra zero-valued column."""
+        haps_file = os.path.join(self.temp_dir, "trailing_space.haps")
+        with open(haps_file, "w") as f:
+            f.write("0 1 0 1 0 \n")
+            f.write("1 0 1 0 1 \n")
+
+        reader = SparseMatrixReader()
+        matrix = reader.loadSparseMatrix(haps_file)
+
+        self.assertEqual(matrix.num_rows(), 2)
+        self.assertEqual(matrix.num_cols(), 5)
+        self.assertEqual(matrix.get_row(0), [0, 1, 0, 1, 0])
+        self.assertEqual(matrix.get_row(1), [1, 0, 1, 0, 1])
+
 
 class TestSparseMatrixWriter(unittest.TestCase):
     def setUp(self):

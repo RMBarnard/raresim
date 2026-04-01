@@ -215,9 +215,10 @@ class SparseMatrixReader:
         """
         matrix = None
         for line in gzip.open(filepath, "rt"):
-            if line is None or line.strip() == '':
+            stripped_line = line.strip()
+            if line is None or stripped_line == '':
                 break
-            nums = self.compute(np.frombuffer(line[::2].encode('ascii'), np.uint8))
+            nums = self.compute(np.frombuffer(stripped_line[::2].encode('ascii'), np.uint8))
             if matrix is None:
                 matrix = SparseMatrix(len(nums))
             row_to_add = self.__getSparseRow(nums)
@@ -256,9 +257,10 @@ class SparseMatrixReader:
         """
         matrix = None
         for line in open(filepath, "r"):
-            if line is None or line.strip() == '':
+            stripped_line = line.strip()
+            if line is None or stripped_line == '':
                 break
-            nums = self.compute(np.frombuffer(line[::2].encode('ascii'), np.uint8))
+            nums = self.compute(np.frombuffer(stripped_line[::2].encode('ascii'), np.uint8))
             if matrix is None:
                 matrix = SparseMatrix(len(nums))
             row_to_add = self.__getSparseRow(nums)
