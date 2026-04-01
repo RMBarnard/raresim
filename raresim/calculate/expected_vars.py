@@ -111,12 +111,12 @@ def fit_nvars(observed_variants_per_kb):
         phi = re_LS.x[0]
         omega = re_LS.x[1]
 
-    print(f"Calculated the following params from nvar target data. omega: {omega}, phi: {phi}")
+    print(f"Calculated the following params from nvar target data. omega: {omega:.4f}, phi: {phi:.4f}")
     return omega,phi
 
 def nvariants(n, omega, phi, reg_size, weight):
     ret = float(phi) * (int(n)**float(omega)) * reg_size * weight
-    print(f"Calculated {ret} total variants (accounting for region size)")
+    print(f"Calculated {ret:.4f} total variants (accounting for region size)")
     return ret
 
 def fit_afs(observed_bin_props_df):
@@ -194,7 +194,7 @@ def fit_afs(observed_bin_props_df):
     alpha = alpha_opt
     beta = beta_opt
     b = b
-    print(f"Calculated the following params from AFS target data. alpha: {alpha}, beta: {beta}, b: {b}")
+    print(f"Calculated the following params from AFS target data. alpha: {alpha:.4f}, beta: {beta:.4f}, b: {b:.4f}")
     return alpha, beta, b
 
 

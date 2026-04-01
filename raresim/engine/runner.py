@@ -100,6 +100,7 @@ class DefaultRunner:
             The chosen transformer
         """
         mode = self.runConfig.run_type
+        print()
         print(f"Running with run mode: {mode}")
         if mode == "standard":
             return StandardPruner(self.runConfig, bins, legend, matrix)
