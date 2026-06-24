@@ -1,10 +1,14 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = [
+    "setuptools>=61.0",
+    "wheel",
+    "setuptools_scm[toml]>=7.0.0",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "raresim"
-version = "3.0.3"
+dynamic = ["version"]
 description = "A python interface for scalable rare-variant simulations"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,7 +16,7 @@ authors = [
     { name = "Ryan Barnard", email = "rbarnard1107@gmail.com" }
 ]
 maintainers = [
-    { name = "Ryan Barnard", email = "rbarnard1107@gmail.com" }
+    { name = "Jess Murphy", email = "jessica.murphy@cuanschutz.edu" }
 ]
 license = {text = "MIT"}
 classifiers = [
@@ -52,10 +56,15 @@ dev = [
 raresim = "raresim.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/RMBarnard/raresim"
-Documentation = "https://github.com/RMBarnard/raresim#readme"
-Issues = "https://github.com/RMBarnard/raresim/issues"
+Homepage = "https://github.com/Hendricks-Research-Team/RAREsim2"
+Documentation = "https://github.com/Hendricks-Research-Team/RAREsim2#readme"
+Issues = "https://github.com/Hendricks-Research-Team/RAREsim2/issues"
 
 [tool.setuptools]
 include-package-data = true
 package-dir = { "" = "." }
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"
+write_to = "raresim/_version.py"
