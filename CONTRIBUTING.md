@@ -37,7 +37,7 @@ This project adheres to the Contributor Covenant [code of conduct](CODE_OF_CONDU
    ```
 3. Install development dependencies:
    ```bash
-   pip install -r requirements-dev.txt
+   pip install -e .[dev]
    ```
 4. Install pre-commit hooks:
    ```bash
