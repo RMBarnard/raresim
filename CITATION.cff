@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it."
+title: "RAREsim2"
+abstract: "RAREsim2 is a Python interface for scalable rare-variant simulations using real haplotypes."
+version: "3.0.4"
+software-type: "package"
+authors:
+  - family-names: "Barnard"
+    given-names: "Ryan"
+    email: "rbarnard1107@gmail.com"
+  - family-names: "Murphy"
+    given-names: "Jessica"
+    email: "jessica.murphy@cuanschutz.edu"
+    orcid: https://orcid.org/0000-0001-8400-7485
+identifiers:
+  - description: This is the doi for RAREsim2 version 3.0.4
+    type: doi
+    value: 10.5281/zenodo.19442523
+  - description: This is the published Bioinformatics paper for RAREsim2 version 3.0.4
+    type: doi
+    value: 10.1093/bioinformatics/btag241
+date-released: "2026-04-06"
+license: "MIT"
+url: "https://github.com/Hendricks-Research-Team/RAREsim2"
+repository-code: "https://github.com/Hendricks-Research-Team/RAREsim2"
