@@ -43,15 +43,20 @@ This project adheres to the Contributor Covenant [code of conduct](CODE_OF_CONDU
    ```bash
    pre-commit install
    ```
+5. Verify hooks on all files:
+   ```bash
+   pre-commit run --all-files
+   ```
 
 ## Code Style
 
 - Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide
 - Use type hints for all function signatures
-- Keep lines under 88 characters (Black's default)
+- Keep lines under 127 characters (size of Github editor)
 - Run `black .` to format your code
 - Run `isort .` to sort imports
 - Run `flake8` to check for style issues
+- Run `pre-commit run --all-files` to validate hooks across the repo
 
 ## Testing
 
