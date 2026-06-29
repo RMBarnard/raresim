@@ -1,28 +1,43 @@
 from abc import ABC, abstractmethod
 
+from raresim.common.legend import Legend
+from raresim.common.sparse import SparseMatrix
 from raresim.engine.config import RunConfig
-from raresim.engine.utils import *
+from raresim.engine.utils import (add_protected_rows_back,
+                                  adjust_for_protected_variants,
+                                  copy_bin_assignments, print_bin_comparison)
 
 
 class Pruner(ABC):
     @abstractmethod
     def transform(self) -> None:
-       pass
+        pass
 
 
-def _write_pruned_variants_file(config: RunConfig, legend: Legend, rows_to_keep: list) -> None:
-    base_path = config.args.output_legend if config.args.output_legend is not None else config.args.input_legend
+def _write_pruned_variants_file(
+    config: RunConfig, legend: Legend, rows_to_keep: list[int]
+) -> None:
+    base_path = (
+        config.args.output_legend
+        if config.args.output_legend is not None
+        else config.args.input_legend
+    )
     if base_path is None:
         return
 
-    with open(f'{base_path}-pruned-variants', 'w') as trimmed_vars_file:
-        trimmed_vars_file.write("\t".join(legend.get_header()) + '\n')
+    with open(f"{base_path}-pruned-variants", "w") as trimmed_vars_file:
+        trimmed_vars_file.write("\t".join(legend.get_header()) + "\n")
         for row in range(legend.row_count()):
             if row not in rows_to_keep:
-                trimmed_vars_file.write("\t".join([y for x, y in legend[row].items()]) + '\n')
+                trimmed_vars_file.write(
+                    "\t".join([y for x, y in legend[row].items()]) + "\n"
+                )
+
 
 class StandardPruner(Pruner):
-    def __init__(self, config: RunConfig, bins: list, legend: Legend, matrix: SparseMatrix):
+    def __init__(
+        self, config: RunConfig, bins: list, legend: Legend, matrix: SparseMatrix
+    ):
         """
         Constructor for the DefaultTransformer.
 
@@ -57,24 +72,44 @@ class StandardPruner(Pruner):
         unprotected_input_bin_assignments = None
         unprotected_output_bin_assignments = None
         if self.__config.args.keep_protected:
-            protected_vars_per_bin = adjust_for_protected_variants(self.__bins, bin_assignments, self.__legend)
+            protected_vars_per_bin = adjust_for_protected_variants(
+                self.__bins, bin_assignments, self.__legend
+            )
             if self.__config.args.verbose:
                 unprotected_bins = copy.deepcopy(self.__bins)
-                unprotected_input_bin_assignments = copy_bin_assignments(bin_assignments)
+                unprotected_input_bin_assignments = copy_bin_assignments(
+                    bin_assignments
+                )
 
         extra_rows = []
-        prune_bins(extra_rows, bin_assignments, self.__legend, self.__matrix, self.__bins, self.__config.activation_threshold, self.__config.stop_threshold)
+        prune_bins(
+            extra_rows,
+            bin_assignments,
+            self.__legend,
+            self.__matrix,
+            self.__bins,
+            self.__config.activation_threshold,
+            self.__config.stop_threshold,
+        )
 
         if self.__config.args.keep_protected:
             if self.__config.args.verbose:
-                unprotected_output_bin_assignments = copy_bin_assignments(bin_assignments)
-            add_protected_rows_back(self.__bins, bin_assignments, protected_vars_per_bin)
+                unprotected_output_bin_assignments = copy_bin_assignments(
+                    bin_assignments
+                )
+            add_protected_rows_back(
+                self.__bins, bin_assignments, protected_vars_per_bin
+            )
 
-        print('Allele frequency distribution:')
+        print("Allele frequency distribution:")
         print_bin_comparison(self.__bins, input_bin_assignments, bin_assignments)
         if self.__config.args.keep_protected and self.__config.args.verbose:
-            print('\nAllele frequency distribution excluding protected variants:')
-            print_bin_comparison(unprotected_bins, unprotected_input_bin_assignments, unprotected_output_bin_assignments)
+            print("\nAllele frequency distribution excluding protected variants:")
+            print_bin_comparison(
+                unprotected_bins,
+                unprotected_input_bin_assignments,
+                unprotected_output_bin_assignments,
+            )
 
         rows_to_keep = self.get_all_kept_rows(bin_assignments)
         _write_pruned_variants_file(self.__config, self.__legend, rows_to_keep)
@@ -83,11 +118,14 @@ class StandardPruner(Pruner):
                 self.__matrix.prune_row(row, self.__matrix.row_num(row))
                 if self.__matrix.row_num(row) != 0:
                     raise Exception(
-                        "ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file.")
+                        "ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file."
+                    )
 
         rows_to_keep.sort()
         if self.__config.remove_zeroed_rows:
-            rows_to_remove = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
+            rows_to_remove = [
+                x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep
+            ]
             for rowId in rows_to_remove[::-1]:
                 self.__legend.remove_row(rowId)
                 self.__matrix.remove_row(rowId)
@@ -110,17 +148,17 @@ class StandardPruner(Pruner):
         mode = self.__config.run_type
         for bin_id in bin_assignments:
             all_kept_rows += bin_assignments[bin_id]
-            
-        if mode == 'fun_only':
+
+        if mode == "fun_only":
             for row_id in range(self.__legend.row_count()):
-                if self.__legend[row_id]['fun'] == 'syn':
+                if self.__legend[row_id]["fun"] == "syn":
                     all_kept_rows.append(row_id)
 
-        elif mode == 'syn_only':
+        elif mode == "syn_only":
             for row_id in range(self.__legend.row_count()):
-                if self.__legend[row_id]['fun'] == 'fun':
+                if self.__legend[row_id]["fun"] == "fun":
                     all_kept_rows.append(row_id)
-                    
+
         all_kept_rows.sort()
         return list(dict.fromkeys(all_kept_rows))
 
@@ -164,12 +202,12 @@ class StandardPruner(Pruner):
         for row in range(self.__matrix.num_rows()):
             row_num = self.__matrix.row_num(row)
             if row_num > 0:
-                if self.__config.run_type == 'fun_only':
-                    if self.__legend[row_i]['fun'] != 'fun':
+                if self.__config.run_type == "fun_only":
+                    if self.__legend[row_i]["fun"] != "fun":
                         row_i += 1
                         continue
-                elif self.__config.run_type == 'syn_only':
-                    if self.__legend[row_i]['fun'] != 'syn':
+                elif self.__config.run_type == "syn_only":
+                    if self.__legend[row_i]["fun"] != "syn":
                         row_i += 1
                         continue
                 bin_id = self.get_bin(row_num)
@@ -182,7 +220,9 @@ class StandardPruner(Pruner):
 
 
 class FunctionalSplitPruner(Pruner):
-    def __init__(self, config: RunConfig, bins: dict, legend: Legend, matrix: SparseMatrix):
+    def __init__(
+        self, config: RunConfig, bins: dict, legend: Legend, matrix: SparseMatrix
+    ):
         self.__config: RunConfig = config
         self.__bins = bins
         self.__legend = legend
@@ -213,34 +253,78 @@ class FunctionalSplitPruner(Pruner):
         unprotected_input_bin_assignments = None
         unprotected_output_bin_assignments = None
         if self.__config.args.keep_protected:
-            protected_vars_per_bin['fun'] = adjust_for_protected_variants(self.__bins['fun'], bin_assignments['fun'], self.__legend)
-            protected_vars_per_bin['syn'] = adjust_for_protected_variants(self.__bins['syn'], bin_assignments['syn'], self.__legend)
+            protected_vars_per_bin["fun"] = adjust_for_protected_variants(
+                self.__bins["fun"], bin_assignments["fun"], self.__legend
+            )
+            protected_vars_per_bin["syn"] = adjust_for_protected_variants(
+                self.__bins["syn"], bin_assignments["syn"], self.__legend
+            )
             if self.__config.args.verbose:
                 unprotected_bins = copy.deepcopy(self.__bins)
-                unprotected_input_bin_assignments = copy_bin_assignments(bin_assignments)
+                unprotected_input_bin_assignments = copy_bin_assignments(
+                    bin_assignments
+                )
         extra_rows = []
 
-        extra_rows = {'fun': [], 'syn': []}
-        prune_bins(extra_rows['fun'], bin_assignments['fun'], self.__legend, self.__matrix, self.__bins['fun'], self.__config.activation_threshold, self.__config.stop_threshold)
-        prune_bins(extra_rows['syn'], bin_assignments['syn'], self.__legend, self.__matrix, self.__bins['syn'], self.__config.activation_threshold, self.__config.stop_threshold)
+        extra_rows = {"fun": [], "syn": []}
+        prune_bins(
+            extra_rows["fun"],
+            bin_assignments["fun"],
+            self.__legend,
+            self.__matrix,
+            self.__bins["fun"],
+            self.__config.activation_threshold,
+            self.__config.stop_threshold,
+        )
+        prune_bins(
+            extra_rows["syn"],
+            bin_assignments["syn"],
+            self.__legend,
+            self.__matrix,
+            self.__bins["syn"],
+            self.__config.activation_threshold,
+            self.__config.stop_threshold,
+        )
 
         if self.__config.args.keep_protected:
             if self.__config.args.verbose:
-                unprotected_output_bin_assignments = copy_bin_assignments(bin_assignments)
-            add_protected_rows_back(self.__bins['fun'], bin_assignments['fun'], protected_vars_per_bin['fun'])
-            add_protected_rows_back(self.__bins['syn'], bin_assignments['syn'], protected_vars_per_bin['syn'])
+                unprotected_output_bin_assignments = copy_bin_assignments(
+                    bin_assignments
+                )
+            add_protected_rows_back(
+                self.__bins["fun"],
+                bin_assignments["fun"],
+                protected_vars_per_bin["fun"],
+            )
+            add_protected_rows_back(
+                self.__bins["syn"],
+                bin_assignments["syn"],
+                protected_vars_per_bin["syn"],
+            )
 
-        print('Allele frequency distribution:')
-        print('Functional')
-        print_bin_comparison(self.__bins['fun'], input_bin_assignments['fun'], bin_assignments['fun'])
-        print('\nSynonymous')
-        print_bin_comparison(self.__bins['syn'], input_bin_assignments['syn'], bin_assignments['syn'])
+        print("Allele frequency distribution:")
+        print("Functional")
+        print_bin_comparison(
+            self.__bins["fun"], input_bin_assignments["fun"], bin_assignments["fun"]
+        )
+        print("\nSynonymous")
+        print_bin_comparison(
+            self.__bins["syn"], input_bin_assignments["syn"], bin_assignments["syn"]
+        )
         if self.__config.args.keep_protected and self.__config.args.verbose:
-            print('\nAllele frequency distribution excluding protected variants:')
-            print('Functional')
-            print_bin_comparison(unprotected_bins['fun'], unprotected_input_bin_assignments['fun'], unprotected_output_bin_assignments['fun'])
-            print('\nSynonymous')
-            print_bin_comparison(unprotected_bins['syn'], unprotected_input_bin_assignments['syn'], unprotected_output_bin_assignments['syn'])
+            print("\nAllele frequency distribution excluding protected variants:")
+            print("Functional")
+            print_bin_comparison(
+                unprotected_bins["fun"],
+                unprotected_input_bin_assignments["fun"],
+                unprotected_output_bin_assignments["fun"],
+            )
+            print("\nSynonymous")
+            print_bin_comparison(
+                unprotected_bins["syn"],
+                unprotected_input_bin_assignments["syn"],
+                unprotected_output_bin_assignments["syn"],
+            )
 
         rows_to_keep = self.get_all_kept_rows(bin_assignments)
         _write_pruned_variants_file(self.__config, self.__legend, rows_to_keep)
@@ -249,15 +333,17 @@ class FunctionalSplitPruner(Pruner):
                 self.__matrix.prune_row(row, self.__matrix.row_num(row))
                 if self.__matrix.row_num(row) != 0:
                     raise Exception(
-                        "ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file.")
+                        "ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file."
+                    )
 
         rows_to_keep.sort()
         if self.__config.remove_zeroed_rows:
-            rows_to_remove = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
+            rows_to_remove = [
+                x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep
+            ]
             for rowId in rows_to_remove[::-1]:
                 self.__legend.remove_row(rowId)
                 self.__matrix.remove_row(rowId)
-
 
     def get_all_kept_rows(self, bin_assignments) -> list:
         """
@@ -274,14 +360,12 @@ class FunctionalSplitPruner(Pruner):
             A list of all row IDs that are kept after pruning.
         """
         all_kept_rows = []
-        for bin_id in range(len(bin_assignments['fun'])):
-            all_kept_rows += bin_assignments['fun'][bin_id]
-        for bin_id in range(len(bin_assignments['syn'])):
-            all_kept_rows += bin_assignments['syn'][bin_id]
-
+        for bin_id in range(len(bin_assignments["fun"])):
+            all_kept_rows += bin_assignments["fun"][bin_id]
+        for bin_id in range(len(bin_assignments["syn"])):
+            all_kept_rows += bin_assignments["syn"][bin_id]
 
         return list(sorted(all_kept_rows))
-
 
     def assign_bins(self) -> dict:
         """
@@ -297,21 +381,21 @@ class FunctionalSplitPruner(Pruner):
             A dictionary where keys are bin groups ('fun' or 'syn') and values are dictionaries
             mapping bin indices to lists of row indices in the matrix that belong to each bin.
         """
-        
+
         bin_assignments = {
-            'fun': {bin_id: [] for bin_id in range(len(self.__bins['fun']) + 1)},
-            'syn': {bin_id: [] for bin_id in range(len(self.__bins['syn']) + 1)}
+            "fun": {bin_id: [] for bin_id in range(len(self.__bins["fun"]) + 1)},
+            "syn": {bin_id: [] for bin_id in range(len(self.__bins["syn"]) + 1)},
         }
 
         row_i = 0
         for row in range(self.__matrix.num_rows()):
             row_num = self.__matrix.row_num(row)
             if row_num > 0:
-               
+
                 bin_id = self.get_bin(row_num)
-                
-                target_map = bin_assignments[self.__legend[row_i]['fun']]
-                    
+
+                target_map = bin_assignments[self.__legend[row_i]["fun"]]
+
                 if bin_id not in target_map:
                     target_map[bin_id] = []
                 target_map[bin_id].append(row_i)
@@ -336,7 +420,7 @@ class FunctionalSplitPruner(Pruner):
         int
             The index of the bin in which the value was found, or the length of the bins if the value was not found.
         """
-        bins = self.__bins[self.__legend[row_id]['fun']]
+        bins = self.__bins[self.__legend[row_id]["fun"]]
         for i in range(len(bins)):
             if bins[i][0] <= val <= bins[i][1]:
                 return i
@@ -362,8 +446,8 @@ class ProbabilisticPruner(Pruner):
         rows_to_keep = []
 
         for row_index in range(self.__matrix.num_rows()):
-            legend_val = self.__legend[row_index]['prob']
-            if legend_val == '.':
+            legend_val = self.__legend[row_index]["prob"]
+            if legend_val == ".":
                 rows_to_keep.append(row_index)
                 continue
 
@@ -374,17 +458,20 @@ class ProbabilisticPruner(Pruner):
 
             self.__matrix.prune_row(row_index, self.__matrix.row_num(row_index))
 
-        print('Allele frequency distribution:')
+        print("Allele frequency distribution:")
         if len(probability_bins) <= 10:
             print_probabilistic_bin_summary(probability_bins, self.__matrix)
         else:
-            print_observed_afd_comparison(input_observed_afd, summarize_observed_afd(self.__matrix))
+            print_observed_afd_comparison(
+                input_observed_afd, summarize_observed_afd(self.__matrix)
+            )
 
         _write_pruned_variants_file(self.__config, self.__legend, rows_to_keep)
 
         if self.__config.remove_zeroed_rows:
-            rows_to_remove = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
+            rows_to_remove = [
+                x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep
+            ]
             for rowId in rows_to_remove[::-1]:
                 self.__legend.remove_row(rowId)
                 self.__matrix.remove_row(rowId)
-

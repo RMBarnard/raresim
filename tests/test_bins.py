@@ -1,6 +1,7 @@
-import unittest
-import tempfile
 import os
+import tempfile
+import unittest
+
 from raresim.common.bins import loadBins
 
 
@@ -9,7 +10,7 @@ class TestBins(unittest.TestCase):
         """Create a temporary bins file for testing"""
         self.temp_dir = tempfile.mkdtemp()
         self.bins_file = os.path.join(self.temp_dir, "test_bins.txt")
-        
+
         # Write a test bins file
         with open(self.bins_file, "w") as f:
             f.write("Lower\tUpper\tExpected\n")
@@ -27,7 +28,7 @@ class TestBins(unittest.TestCase):
     def test_load_bins(self):
         """Test loading bins from file"""
         bins = loadBins(self.bins_file)
-        
+
         self.assertEqual(len(bins), 4)
         self.assertEqual(bins[0], [1, 1, 20.5])
         self.assertEqual(bins[1], [2, 2, 10.3])
@@ -43,12 +44,12 @@ class TestBins(unittest.TestCase):
             f.write("2\t2\t10.3\n")
             f.write("\n")
             f.write("\n")
-        
+
         bins = loadBins(bins_file_empty)
         self.assertEqual(len(bins), 2)
-        
+
         os.remove(bins_file_empty)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

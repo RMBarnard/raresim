@@ -11,7 +11,7 @@ Python interface for flexible simulation of rare-variant genetic data using real
 Versions of this repository correspond to two major software releases:
 - **RAREsim:** versions v1.x.x – v2.x.x
 - **RAREsim2:** versions v3.x.x and above
-  
+
 *The version used in the RAREsim2 manuscript is v3.0.4.*
 
 ## Installation
@@ -112,7 +112,7 @@ Calculated the following params from nvar target data. omega: 0.6414, phi: 0.083
 Calculated 583.3571 total variants (accounting for region size)
 ```
 
-Note: Two MAC bin estimate files will be output (one for functional variants and another for synonymous variants) if the 
+Note: Two MAC bin estimate files will be output (one for functional variants and another for synonymous variants) if the
 input AFS file is stratified by functional status. If it's not stratified, then just one file will be output.
 
 #### User-Provided Parameters
@@ -152,10 +152,10 @@ options:
   -b EXP_BINS           Expected number of functional and synonymous variants per MAC bin
   --functional_bins EXP_FUN_BINS
                         Expected number of variants per MAC bin for functional variants (must be used
-                        with --synonymous_bins) 
+                        with --synonymous_bins)
   --synonymous_bins EXP_SYN_BINS
                         Expected number of variants per MAC bin for synonymous variants (must be used
-                        with --functional_bins) 
+                        with --functional_bins)
   -l INPUT_LEGEND       Input legend file
   -L OUTPUT_LEGEND      Output legend file (only required when using -z)
   -H OUTPUT_HAP         Output compressed haplotype file
@@ -220,7 +220,7 @@ monomorphic and actual pruned variants.
 To perform stratified simulations where functional and synonymous variants are pruned separately:
 1. add a column to the legend file (`-l`) named "fun", where functional variants have the value "fun" and synonymous variants have the value "syn"
 2. provide separate MAC bin files with the expected number of variants per bin for functional (`--functional_bins`) and synonymous (`--synonymous_bins`) variants
-   
+
 ```text
 $ python3 -m raresim sim \
     -m example/example.haps.gz \

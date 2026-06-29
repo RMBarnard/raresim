@@ -1,8 +1,9 @@
-import random
 import copy
+import random
 from typing import Dict, List
-from raresim.common.sparse import SparseMatrix
+
 from raresim.common.legend import Legend
+from raresim.common.sparse import SparseMatrix
 
 
 def copy_bin_assignments(bin_assignments):
@@ -22,7 +23,7 @@ def _bin_label_from_ranges(lower, upper) -> str:
 def _bin_label_from_standard_bins(bins: list, bin_id: int, total_bins: int) -> str:
     if bin_id < len(bins):
         return _bin_label_from_ranges(bins[bin_id][0], bins[bin_id][1])
-    return f"[{str(bins[bin_id - 1][1] + 1)},\u221E]"
+    return f"[{str(bins[bin_id - 1][1] + 1)},\u221e]"
 
 
 def print_bin(bins: list, bin_assignments: dict):
@@ -51,8 +52,8 @@ def print_bin_comparison(bins: list, input_assignments: dict, output_assignments
         )
 
 
-def summarize_observed_afd(matrix: SparseMatrix) -> dict:
-    allele_count_bins = {}
+def summarize_observed_afd(matrix: SparseMatrix) -> dict[int, int]:
+    allele_count_bins: dict[int, int] = {}
     for row_id in range(matrix.num_rows()):
         allele_count = matrix.row_num(row_id)
         if allele_count == 0:
@@ -60,6 +61,12 @@ def summarize_observed_afd(matrix: SparseMatrix) -> dict:
         allele_count_bins.setdefault(allele_count, 0)
         allele_count_bins[allele_count] += 1
     return allele_count_bins
+
+
+def _format_expected(expected) -> str:
+    if expected == "N/A":
+        return expected
+    return f"{float(expected):.3f}"
 
 
 def print_observed_afd_comparison(input_summary: dict, output_summary: dict) -> None:
@@ -90,39 +97,44 @@ def build_probabilistic_bins(matrix: SparseMatrix, legend: Legend) -> list:
         if row_mac <= 0:
             continue
 
-        probability = legend[row_id].get('prob', '.')
-        if probability == '.':
+        probability = legend[row_id].get("prob", ".")
+        if probability == ".":
             continue
 
         if probability not in grouped:
             grouped[probability] = {
-                'probability': probability,
-                'rows': [],
-                'lower': row_mac,
-                'upper': row_mac,
-                'expected': 0.0,
+                "probability": probability,
+                "rows": [],
+                "lower": row_mac,
+                "upper": row_mac,
+                "expected": 0.0,
             }
 
-        grouped[probability]['rows'].append(row_id)
-        grouped[probability]['lower'] = min(grouped[probability]['lower'], row_mac)
-        grouped[probability]['upper'] = max(grouped[probability]['upper'], row_mac)
+        grouped[probability]["rows"].append(row_id)
+        grouped[probability]["lower"] = min(grouped[probability]["lower"], row_mac)
+        grouped[probability]["upper"] = max(grouped[probability]["upper"], row_mac)
 
     inferred_bins = []
     for probability, values in grouped.items():
-        values['expected'] = float(probability) * len(values['rows'])
+        values["expected"] = float(probability) * len(values["rows"])
         inferred_bins.append(values)
 
-    return sorted(inferred_bins, key=lambda item: (item['lower'], item['upper'], float(item['probability'])))
+    return sorted(
+        inferred_bins,
+        key=lambda item: (item["lower"], item["upper"], float(item["probability"])),
+    )
 
 
-def print_probabilistic_bin_summary(probability_bins: list, matrix: SparseMatrix) -> None:
+def print_probabilistic_bin_summary(
+    probability_bins: list, matrix: SparseMatrix
+) -> None:
     """
     Print probabilistic pruning bins inferred from the input legend.
     """
     print(f"{'Prob':<10}{'Bin':<12}{'Expected':<12}{'Input':<10}{'Output':<10}")
     for probability_bin in probability_bins:
         output = 0
-        for row_id in probability_bin['rows']:
+        for row_id in probability_bin["rows"]:
             if matrix.row_num(row_id) > 0:
                 output += 1
 
@@ -136,8 +148,15 @@ def print_probabilistic_bin_summary(probability_bins: list, matrix: SparseMatrix
         )
 
 
-def prune_bins(extra_rows: list, bin_assignments: dict, legend: Legend, matrix: SparseMatrix, bins: list,
-               activation_threshold: int, stopping_threshold: int) -> None:
+def prune_bins(
+    extra_rows: list,
+    bin_assignments: dict,
+    legend: Legend,
+    matrix: SparseMatrix,
+    bins: list,
+    activation_threshold: int,
+    stopping_threshold: int,
+) -> None:
     """
     Prune the rows assigned to each bin so that the bins are more closely aligned with the desired allele counts.
 
@@ -195,7 +214,7 @@ def prune_bins(extra_rows: list, bin_assignments: dict, legend: Legend, matrix: 
         if have - need > activation:
             # Calculate the probability to remove any given row in the bin
             prob_remove = 1 - float(need) / float(have) if have != 0 else 0
-            row_ids_to_rem = []
+            row_ids_to_rem: list[int] = []
             for i in range(have):
                 # If we hit our stopping threshold to stop the pruning process, then stop the pruning process
                 if have - len(row_ids_to_rem) <= need - stop:
@@ -205,9 +224,13 @@ def prune_bins(extra_rows: list, bin_assignments: dict, legend: Legend, matrix: 
                 # to make up for not having enough rows in later bins
                 if flip < prob_remove:
                     row_id = bin_assignments[bin_id][i]
-                    if 'protected' in legend[row_id] and legend[row_id]['protected'] == '1':
+                    if (
+                        "protected" in legend[row_id]
+                        and legend[row_id]["protected"] == "1"
+                    ):
                         print(
-                            f"WARNING: Attempting to prune a row that is protected. This should not happen and is a bug. RowId = {row_id}, binId={bin_id}")
+                            f"WARNING: Attempting to prune a row that is protected. This should not happen and is a bug. RowId = {row_id}, binId={bin_id}"
+                        )
                     # Add the ith row in the bin to the list of row ids to remove and the list of available
                     # rows to pull from if needed later on
                     row_ids_to_rem.append(row_id)
@@ -220,18 +243,27 @@ def prune_bins(extra_rows: list, bin_assignments: dict, legend: Legend, matrix: 
             pullFromCommons = False
             if len(extra_rows) < round(abs(need - have)):
                 if len(reserve_pool) < round(abs(need - have)):
-                    raise Exception(f'ERROR: Current bin has {have} variants, but the model needs {need} variants '
-                                    f'and only {len(extra_rows)} excess rows are available to use and prune down '
-                                    f'from larger bins and only {len(reserve_pool)} common variants are available '
-                                    f'to prune down.')
+                    raise Exception(
+                        f"ERROR: Current bin has {have} variants, but the model needs {need} variants "
+                        f"and only {len(extra_rows)} excess rows are available to use and prune down "
+                        f"from larger bins and only {len(reserve_pool)} common variants are available "
+                        f"to prune down."
+                    )
                 else:
                     print(
-                        f"WARNING: No more extra pruned rows to pull from. Common variants may be pruned down for bin {bin_id + 1} if necessary")
+                        f"WARNING: No more extra pruned rows to pull from. Common variants may be pruned down for bin {bin_id + 1} if necessary"
+                    )
                     pullFromCommons = True
 
             # Calculate the probability to use any given row from the available list
-            prob_add_from_extras = float(need - have) / float(len(extra_rows)) if len(extra_rows) > 0 else 1
-            prob_add_from_reserve = float(need - have - len(extra_rows)) / float(len(reserve_pool))
+            prob_add_from_extras = (
+                float(need - have) / float(len(extra_rows))
+                if len(extra_rows) > 0
+                else 1
+            )
+            prob_add_from_reserve = float(need - have - len(extra_rows)) / float(
+                len(reserve_pool)
+            )
             row_ids_to_add_from_extras = []
             for i in range(len(extra_rows)):
                 flip = random.uniform(0, 1)
@@ -245,7 +277,8 @@ def prune_bins(extra_rows: list, bin_assignments: dict, legend: Legend, matrix: 
                     matrix.prune_row(row_id, num_to_rem)
                     if matrix.row_num(row_id) != num_to_keep:
                         print(
-                            f"WARNING: Requested to prune row {row_id} down to {num_to_keep} variants, but after the request the row still has {matrix.row_num} variants. This should not happen and the issue likely needs to be raised with a developer.")
+                            f"WARNING: Requested to prune row {row_id} down to {num_to_keep} variants, but after the request the row still has {matrix.row_num} variants. This should not happen and the issue likely needs to be raised with a developer."
+                        )
                     bin_assignments[bin_id].append(row_id)
 
             for row_id in row_ids_to_add_from_extras:
@@ -263,7 +296,8 @@ def prune_bins(extra_rows: list, bin_assignments: dict, legend: Legend, matrix: 
                         matrix.prune_row(row_id, num_to_rem)
                         if matrix.row_num(row_id) != num_to_keep:
                             print(
-                                f"WARNING: Requested to prune row {row_id} down to {num_to_keep} variants, but after the request the row still has {matrix.row_num} variants. This should not happen and the issue likely needs to be raised with a developer.")
+                                f"WARNING: Requested to prune row {row_id} down to {num_to_keep} variants, but after the request the row still has {matrix.row_num} variants. This should not happen and the issue likely needs to be raised with a developer."
+                            )
                         bin_assignments[bin_id].append(row_id)
                 for row_id in row_ids_to_add_from_reserve:
                     reserve_pool.remove(row_id)
@@ -274,16 +308,19 @@ def adjust_for_protected_variants(bins, bin_assignments, legend) -> Dict[int, Li
     for bin_id in range(len(bins)):
         rows_in_bin = bin_assignments[bin_id].copy()
         for row_id in rows_in_bin:
-            if legend[row_id]['protected'] == '1':
+            if legend[row_id]["protected"] == "1":
                 bin_assignments[bin_id].remove(row_id)
                 bins[bin_id][2] -= 1
                 ret[bin_id].append(row_id)
     return ret
 
 
-def add_protected_rows_back(bins, bin_assignments, protected_var_counts_per_bin) -> None:
+def add_protected_rows_back(
+    bins, bin_assignments, protected_var_counts_per_bin
+) -> None:
     for bin_id in protected_var_counts_per_bin:
-        if bin_id == len(bins): continue
+        if bin_id == len(bins):
+            continue
         bins[bin_id][2] += len(protected_var_counts_per_bin[bin_id])
         bin_assignments[bin_id] += protected_var_counts_per_bin[bin_id]
         bin_assignments[bin_id] = sorted(bin_assignments[bin_id])

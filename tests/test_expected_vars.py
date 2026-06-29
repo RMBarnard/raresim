@@ -1,16 +1,13 @@
-import unittest
-import tempfile
 import os
-import pandas as pd
+import tempfile
+import unittest
+
 import numpy as np
-from raresim.calculate.expected_vars import (
-    read_mac_bins,
-    afs,
-    nvariants,
-    fit_afs,
-    fit_nvars,
-    DEFAULT_PARAMS
-)
+import pandas as pd
+
+from raresim.calculate.expected_vars import (DEFAULT_PARAMS, afs, fit_afs,
+                                             fit_nvars, nvariants,
+                                             read_mac_bins)
 
 
 class TestExpectedVars(unittest.TestCase):
@@ -32,7 +29,7 @@ class TestExpectedVars(unittest.TestCase):
             f.write("1,1\n")
             f.write("2,2\n")
             f.write("3,5\n")
-        
+
         macs = read_mac_bins(csv_file)
         self.assertEqual(len(macs), 3)
         self.assertEqual(macs[0], (1, 1))
@@ -47,7 +44,7 @@ class TestExpectedVars(unittest.TestCase):
             f.write("1\t1\n")
             f.write("2\t2\n")
             f.write("3\t5\n")
-        
+
         macs = read_mac_bins(txt_file)
         self.assertEqual(len(macs), 3)
         self.assertEqual(macs[0], (1, 1))
@@ -59,7 +56,7 @@ class TestExpectedVars(unittest.TestCase):
         phi = 0.15
         reg_size = 1.0
         weight = 1.0
-        
+
         result = nvariants(n, omega, phi, reg_size, weight)
         self.assertIsInstance(result, float)
         self.assertGreater(result, 0)
@@ -70,7 +67,7 @@ class TestExpectedVars(unittest.TestCase):
         beta = -0.3
         b = 0.25
         macs = [(1, 1), (2, 2), (3, 5)]
-        
+
         result = afs(alpha, beta, b, macs)
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0][0], 1)
@@ -80,12 +77,14 @@ class TestExpectedVars(unittest.TestCase):
     def test_fit_afs(self):
         """Test fitting AFS parameters"""
         # Create sample data
-        df = pd.DataFrame({
-            'Lower': [1, 2, 3, 6],
-            'Upper': [1, 2, 5, 10],
-            'Prop': [0.4, 0.25, 0.2, 0.15]
-        })
-        
+        df = pd.DataFrame(
+            {
+                "Lower": [1, 2, 3, 6],
+                "Upper": [1, 2, 5, 10],
+                "Prop": [0.4, 0.25, 0.2, 0.15],
+            }
+        )
+
         alpha, beta, b = fit_afs(df)
         self.assertIsInstance(alpha, float)
         self.assertIsInstance(beta, float)
@@ -95,11 +94,13 @@ class TestExpectedVars(unittest.TestCase):
     def test_fit_nvars(self):
         """Test fitting nvar parameters"""
         # Create sample data
-        df = pd.DataFrame({
-            'sample_size': [1000, 5000, 10000, 20000],
-            'nvars_per_kb': [50, 150, 250, 400]
-        })
-        
+        df = pd.DataFrame(
+            {
+                "sample_size": [1000, 5000, 10000, 20000],
+                "nvars_per_kb": [50, 150, 250, 400],
+            }
+        )
+
         omega, phi = fit_nvars(df)
         self.assertIsInstance(omega, float)
         self.assertIsInstance(phi, float)
@@ -109,15 +110,15 @@ class TestExpectedVars(unittest.TestCase):
 
     def test_default_params(self):
         """Test that default parameters exist for all populations"""
-        populations = ['AFR', 'EAS', 'NFE', 'SAS']
+        populations = ["AFR", "EAS", "NFE", "SAS"]
         for pop in populations:
             self.assertIn(pop, DEFAULT_PARAMS)
             params = DEFAULT_PARAMS[pop]
-            self.assertIn('alpha', params)
-            self.assertIn('beta', params)
-            self.assertIn('omega', params)
-            self.assertIn('phi', params)
-            self.assertIn('b', params)
+            self.assertIn("alpha", params)
+            self.assertIn("beta", params)
+            self.assertIn("omega", params)
+            self.assertIn("phi", params)
+            self.assertIn("b", params)
 
     def test_afs_invalid_bins(self):
         """Test AFS with unordered bins raises exception"""
@@ -125,10 +126,10 @@ class TestExpectedVars(unittest.TestCase):
         beta = -0.3
         b = 0.25
         macs = [(3, 5), (1, 1), (2, 2)]  # Unordered
-        
+
         with self.assertRaises(Exception):
             afs(alpha, beta, b, macs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,7 @@
 import unittest
-from raresim.common.exceptions import RaresimException, IllegalArgumentException
+
+from raresim.common.exceptions import (IllegalArgumentException,
+                                       RaresimException)
 
 
 class TestExceptions(unittest.TestCase):
@@ -22,5 +24,5 @@ class TestExceptions(unittest.TestCase):
         self.assertTrue(issubclass(RaresimException, Exception))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

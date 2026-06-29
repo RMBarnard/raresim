@@ -1,13 +1,15 @@
-from raresim.common.exceptions import RaresimException, IllegalArgumentException
-from numpy import ndarray
-import random
-import os
 import gzip
-import timeit
-import numpy as np
-import numba as nb
-import array
+import os
+import random
 import sys
+
+import numba as nb
+import numpy as np
+from numpy import ndarray
+
+from raresim.common.exceptions import (IllegalArgumentException,
+                                       RaresimException)
+
 
 class SparseMatrix:
     """
@@ -20,7 +22,7 @@ class SparseMatrix:
     def __init__(self, cols=0):
         self.__cols = cols
         self.__rows = 0
-        self.__data = []
+        self.__data: list[list[int]] = []
 
     def set_col_count(self, cols: int) -> None:
         """
@@ -39,7 +41,8 @@ class SparseMatrix:
         """
         if row > self.__rows or col > self.__cols:
             raise RaresimException(
-                f"Attempted to get value at {row},{col} when the bounds of the matrix were {self.__rows},{self.__cols}")
+                f"Attempted to get value at {row},{col} when the bounds of the matrix were {self.__rows},{self.__cols}"
+            )
 
         arr = self.__data[row]
         # Use binary search to search for the presence of the index in O(log(n)) time
@@ -64,7 +67,9 @@ class SparseMatrix:
         @return: the full row at the requested index
         """
         if row > self.__rows:
-            raise RaresimException(f"Attempted to get row {row}, but there are only {self.__rows} rows")
+            raise RaresimException(
+                f"Attempted to get row {row}, but there are only {self.__rows} rows"
+            )
         ret = [0] * self.__cols
         for i in self.__data[row]:
             ret[i] = 1
@@ -86,14 +91,16 @@ class SparseMatrix:
         @return:
         """
         if col > self.__cols:
-            raise Exception(f"Attempted to insert at column {col}, but the matrix only has {self.__cols} columns")
+            raise Exception(
+                f"Attempted to insert at column {col}, but the matrix only has {self.__cols} columns"
+            )
         while row > len(self.__data):
-            self.__data.append(())
+            self.__data.append([])
             self.__rows += 1
         temp = self.__data[row]
         temp.append(col)
         temp.sort()
-        temp = list(set(temp))
+        temp = list(dict.fromkeys(temp))
         self.__data[row] = temp
 
     def remove(self, row: int, col: int) -> None:
@@ -104,7 +111,6 @@ class SparseMatrix:
         @return: None
         """
         self.__data[row].remove(col)
-
 
     def add_row(self, val: list) -> None:
         """
@@ -142,7 +148,9 @@ class SparseMatrix:
         @return: the number of 1s in the requested row
         """
         if row > self.__rows - 1:
-            raise RaresimException(f"Attempted to access row {row} but there were only{self.__rows} in the matrix")
+            raise RaresimException(
+                f"Attempted to access row {row} but there were only{self.__rows} in the matrix"
+            )
         return len(self.__data[row])
 
     def prune_row(self, row: int, num_prune: int) -> None:
@@ -184,6 +192,7 @@ class SparseMatrix:
             i += 1
         return reservoir
 
+
 class SparseMatrixReader:
     def __init__(self):
         pass
@@ -198,9 +207,9 @@ class SparseMatrixReader:
         if not os.path.isfile(filepath):
             raise IllegalArgumentException(f"No such file exists: {filepath}")
 
-        if filepath[-3:] == '.sm':
+        if filepath[-3:] == ".sm":
             ret = self.__loadCompressed(filepath)
-        elif filepath[-3:] == '.gz':
+        elif filepath[-3:] == ".gz":
             ret = self.__loadZipped(filepath)
         else:
             ret = self.__loadUncompressed(filepath)
@@ -213,17 +222,23 @@ class SparseMatrixReader:
         @param filepath: path to file to read
         @return: loaded sparse matrix
         """
-        matrix = None
+        matrix: SparseMatrix | None = None
         for line in gzip.open(filepath, "rt"):
             stripped_line = line.strip()
-            if line is None or stripped_line == '':
+            if line is None or stripped_line == "":
                 break
-            nums = self.compute(np.frombuffer(stripped_line[::2].encode('ascii'), np.uint8))
+            nums = self.compute(
+                np.frombuffer(stripped_line[::2].encode("ascii"), np.uint8)
+            )
             if matrix is None:
                 matrix = SparseMatrix(len(nums))
             row_to_add = self.__getSparseRow(nums)
             matrix.add_row(row_to_add.tolist())
 
+        if matrix is None:
+            raise IllegalArgumentException(
+                f"No data found in compressed file: {filepath}"
+            )
         return matrix
 
     def __loadCompressed(self, filepath: str) -> SparseMatrix:
@@ -236,7 +251,7 @@ class SparseMatrixReader:
         with open(filepath, "rb") as f:
             data = f.read(4)
             matrix = SparseMatrix(int.from_bytes(data, "little"))
-            row = []
+            row: list[int] = []
             data = f.read(4)
             while data:
                 if self.__toSigned32(int.from_bytes(data, "little")) == -1:
@@ -255,17 +270,23 @@ class SparseMatrixReader:
         @param filepath: path to file to read
         @return: loaded sparse matrix
         """
-        matrix = None
+        matrix: SparseMatrix | None = None
         for line in open(filepath, "r"):
             stripped_line = line.strip()
-            if line is None or stripped_line == '':
+            if line is None or stripped_line == "":
                 break
-            nums = self.compute(np.frombuffer(stripped_line[::2].encode('ascii'), np.uint8))
+            nums = self.compute(
+                np.frombuffer(stripped_line[::2].encode("ascii"), np.uint8)
+            )
             if matrix is None:
                 matrix = SparseMatrix(len(nums))
             row_to_add = self.__getSparseRow(nums)
             matrix.add_row(row_to_add.tolist())
 
+        if matrix is None:
+            raise IllegalArgumentException(
+                f"No data found in uncompressed file: {filepath}"
+            )
         return matrix
 
     @staticmethod
@@ -274,11 +295,11 @@ class SparseMatrixReader:
 
     @staticmethod
     def __toSigned32(n):
-        n = n & 0xffffffff
+        n = n & 0xFFFFFFFF
         return n | (-(n & 0x80000000))
 
     @staticmethod
-    @nb.njit(nb.int32[::1](nb.types.Array(nb.uint8, 1, 'C', readonly=True)))
+    @nb.njit(nb.int32[::1](nb.types.Array(nb.uint8, 1, "C", readonly=True)))
     def compute(arr):
         """
         This method is not of my own design, but is the fastest possible way that I know of (without writing my own
@@ -291,7 +312,7 @@ class SparseMatrixReader:
         """
         count = len(arr)
         res = np.empty(count, np.int32)
-        base = ord('0')
+        base = ord("0")
         val = 0
         cur = 0
         for c in arr:
@@ -301,11 +322,14 @@ class SparseMatrixReader:
             val = 0
         return res
 
+
 class SparseMatrixWriter:
     def __init__(self):
         pass
 
-    def writeToHapsFile(self, sparseMatrix: SparseMatrix, filename: str, compression="gz") -> None:
+    def writeToHapsFile(
+        self, sparseMatrix: SparseMatrix, filename: str, compression="gz"
+    ) -> None:
         """
         Writes the given sparse matrix to a file with the given name and compression method.
 
@@ -320,7 +344,7 @@ class SparseMatrixWriter:
             self.__writeCompressed(sparseMatrix, filename)
         else:
             self.__writeUncompressed(sparseMatrix, filename)
-        sys.stdout.write("\r[%-20s] %d%%" % ('='* 20, 100))
+        sys.stdout.write("\r[%-20s] %d%%" % ("=" * 20, 100))
         print()
 
     @staticmethod
@@ -333,13 +357,19 @@ class SparseMatrixWriter:
         """
         with gzip.open(filename, "wb") as f:
             for i in range(sparseMatrix.num_rows()):
-                row = ["0"]*sparseMatrix.num_cols()
+                row = ["0"] * sparseMatrix.num_cols()
                 for j in sparseMatrix.get_row_raw(i):
                     row[j] = "1"
                 line = " ".join(row) + "\n"
                 f.write(line.encode())
 
-                sys.stdout.write("\r[%-20s] %d%%" % ('='* int((i / sparseMatrix.num_rows()) * 20), i/sparseMatrix.num_rows()*100))
+                sys.stdout.write(
+                    "\r[%-20s] %d%%"
+                    % (
+                        "=" * int((i / sparseMatrix.num_rows()) * 20),
+                        i / sparseMatrix.num_rows() * 100,
+                    )
+                )
 
     @staticmethod
     def __writeUncompressed(sparseMatrix: SparseMatrix, filename: str):
@@ -358,8 +388,7 @@ class SparseMatrixWriter:
                 line = " ".join(row) + "\n"
                 f.write(line)
                 if i % step == 0:
-                    print('.', end='', flush=True)
-
+                    print(".", end="", flush=True)
 
     @staticmethod
     def __writeCompressed(sparseMatrix: SparseMatrix, filename: str):
@@ -377,4 +406,4 @@ class SparseMatrixWriter:
                 data = array.array("i", row + [-1])
                 f.write(data.tobytes())
                 if i % step == 0:
-                    print('.', end='', flush=True)
+                    print(".", end="", flush=True)

@@ -1,7 +1,8 @@
 import unittest
 from argparse import Namespace
-from raresim.engine.config import RunConfig
+
 from raresim.common.exceptions import IllegalArgumentException
+from raresim.engine.config import RunConfig
 
 
 class TestRunConfig(unittest.TestCase):
@@ -17,7 +18,7 @@ class TestRunConfig(unittest.TestCase):
             z=False,
             small_sample=False,
             activation_threshold=10,
-            stop_threshold=20
+            stop_threshold=20,
         )
         config = RunConfig(args)
         self.assertEqual(config.run_type, "standard")
@@ -36,7 +37,7 @@ class TestRunConfig(unittest.TestCase):
             z=True,
             small_sample=True,
             activation_threshold=15,
-            stop_threshold=25
+            stop_threshold=25,
         )
         config = RunConfig(args)
         self.assertEqual(config.run_type, "func_split")
@@ -55,7 +56,7 @@ class TestRunConfig(unittest.TestCase):
             z=False,
             small_sample=False,
             activation_threshold=10,
-            stop_threshold=20
+            stop_threshold=20,
         )
         config = RunConfig(args)
         self.assertEqual(config.run_type, "fun_only")
@@ -72,7 +73,7 @@ class TestRunConfig(unittest.TestCase):
             z=False,
             small_sample=False,
             activation_threshold=10,
-            stop_threshold=20
+            stop_threshold=20,
         )
         config = RunConfig(args)
         self.assertEqual(config.run_type, "syn_only")
@@ -89,7 +90,7 @@ class TestRunConfig(unittest.TestCase):
             z=False,
             small_sample=False,
             activation_threshold=10,
-            stop_threshold=20
+            stop_threshold=20,
         )
         config = RunConfig(args)
         self.assertEqual(config.run_type, "probabilistic")
@@ -107,11 +108,11 @@ class TestRunConfig(unittest.TestCase):
             z=False,
             small_sample=False,
             activation_threshold=10,
-            stop_threshold=20
+            stop_threshold=20,
         )
         with self.assertRaises(IllegalArgumentException):
             RunConfig(args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

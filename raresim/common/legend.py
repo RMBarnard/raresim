@@ -1,13 +1,26 @@
 import os
-from raresim.common.exceptions import IllegalArgumentException
 import warnings
 
+from raresim.common.exceptions import IllegalArgumentException
+
+
 class Legend:
-    supported_columns = ["id", "position", "a0", "a1", "prob", "protected", "fun", "AC", "exonic", "gene"]
+    supported_columns = [
+        "id",
+        "position",
+        "a0",
+        "a1",
+        "prob",
+        "protected",
+        "fun",
+        "AC",
+        "exonic",
+        "gene",
+    ]
 
     def __init__(self, header: list):
         self.__header = header
-        self.__rows = []
+        self.__rows: list[list[str]] = []
 
     def get_header(self) -> list:
         """
@@ -80,6 +93,7 @@ class Legend:
         """
         return self.get_row(index)
 
+
 class LegendReaderWriter:
     def __init__(self):
         pass
@@ -107,12 +121,14 @@ class LegendReaderWriter:
             header = line.rstrip().split()
             for key in header:
                 if key not in Legend.supported_columns:
-                    warnings.warn(f"Legend column '{key}' is not supported. Supported keys are {Legend.supported_columns}")
+                    warnings.warn(
+                        f"Legend column '{key}' is not supported. Supported keys are {Legend.supported_columns}"
+                    )
             legend = Legend(header)
 
             line = f.readline()
-            while line and line.strip() != "\n" and line.strip() != '':
-                row = line.rstrip().split('\t')
+            while line and line.strip() != "\n" and line.strip() != "":
+                row = line.rstrip().split("\t")
                 legend.add_row(row)
                 line = f.readline()
         return legend

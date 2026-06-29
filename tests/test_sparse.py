@@ -1,8 +1,11 @@
-import unittest
-import tempfile
 import os
-from raresim.common.sparse import SparseMatrix, SparseMatrixReader, SparseMatrixWriter
+import tempfile
+import unittest
+
 from raresim.common.exceptions import IllegalArgumentException
+from raresim.common.sparse import (SparseMatrix, SparseMatrixReader,
+                                   SparseMatrixWriter)
+
 
 class TestSparseMatrix(unittest.TestCase):
     def setUp(self):
@@ -95,10 +98,10 @@ class TestSparseMatrixReader(unittest.TestCase):
             f.write("0 1 0 1 0\n")
             f.write("0 0 1 0 0\n")
             f.write("1 0 0 0 1\n")
-        
+
         reader = SparseMatrixReader()
         matrix = reader.loadSparseMatrix(haps_file)
-        
+
         self.assertEqual(matrix.num_rows(), 3)
         self.assertEqual(matrix.num_cols(), 5)
         self.assertEqual(matrix.get(0, 1), 1)
@@ -140,9 +143,9 @@ class TestSparseMatrixWriter(unittest.TestCase):
         output_file = os.path.join(self.temp_dir, "output.haps")
         writer = SparseMatrixWriter()
         writer.writeToHapsFile(self.matrix, output_file, compression="")
-        
+
         self.assertTrue(os.path.exists(output_file))
-        
+
         # Read it back
         with open(output_file, "r") as f:
             lines = f.readlines()
@@ -155,9 +158,9 @@ class TestSparseMatrixWriter(unittest.TestCase):
         output_file = os.path.join(self.temp_dir, "output.sm")
         writer = SparseMatrixWriter()
         writer.writeToHapsFile(self.matrix, output_file, compression="sm")
-        
+
         self.assertTrue(os.path.exists(output_file))
-        
+
         # Read it back
         reader = SparseMatrixReader()
         loaded_matrix = reader.loadSparseMatrix(output_file)
@@ -165,5 +168,5 @@ class TestSparseMatrixWriter(unittest.TestCase):
         self.assertEqual(loaded_matrix.num_cols(), 5)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

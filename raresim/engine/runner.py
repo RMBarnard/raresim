@@ -1,8 +1,12 @@
-from raresim.common.sparse import *
+from typing import Any, Union, cast
+
 from raresim.common.bins import loadBins
-from raresim.common.legend import *
-from raresim.engine.pruners import *
-from typing import Union
+from raresim.common.legend import Legend, LegendReaderWriter
+from raresim.common.sparse import (SparseMatrix, SparseMatrixReader,
+                                   SparseMatrixWriter)
+from raresim.engine.pruners import (FunctionalSplitPruner, ProbabilisticPruner,
+                                    StandardPruner)
+
 
 class DefaultRunner:
     def __init__(self, runConfig: RunConfig):
@@ -27,17 +31,21 @@ class DefaultRunner:
             IllegalArgumentException: If input or output legend files are not provided.
         """
         # Start with loading all the necessary data
-        matrix: SparseMatrix = self.matrix_reader.loadSparseMatrix(self.args.sparse_matrix)
+        matrix: SparseMatrix = self.matrix_reader.loadSparseMatrix(
+            self.args.sparse_matrix
+        )
         legend: Legend = LegendReaderWriter.load_legend(self.args.input_legend)
-        
+
         bins = None
         if self.runConfig.run_type != "probabilistic":
             bins = self.get_bins()
 
         # Validate inputs
         if legend.row_count() != matrix.num_rows():
-            print(f"Legend and Hap file lengths do not match. \n"
-                                           f"Legend: {legend.row_count()}, Haps: {matrix.num_rows()}")
+            print(
+                f"Legend and Hap file lengths do not match. \n"
+                f"Legend: {legend.row_count()}, Haps: {matrix.num_rows()}"
+            )
 
         if self.args.input_legend is None:
             raise IllegalArgumentException("Input legend file not provided")
@@ -47,16 +55,18 @@ class DefaultRunner:
 
         if self.runConfig.remove_zeroed_rows:
             print()
-            print('Writing new variant legend')
+            print("Writing new variant legend")
             if self.args.output_legend is None:
-                raise IllegalArgumentException("Output legend file not provided when remove_zeroed_rows is True")
+                raise IllegalArgumentException(
+                    "Output legend file not provided when remove_zeroed_rows is True"
+                )
             LegendReaderWriter.write_legend(legend, self.args.output_legend)
 
         print()
-        print('Writing new haplotype file')
+        print("Writing new haplotype file")
         self.matrix_writer.writeToHapsFile(matrix, self.args.output_hap)
 
-    def get_bins(self) -> list:
+    def get_bins(self) -> Union[dict[str, list[Any]], list[Any]]:
         """
         Retrieve the appropriate bin definitions based on the current run configuration.
 
@@ -69,7 +79,10 @@ class DefaultRunner:
         """
         mode = self.runConfig.run_type
         if mode == "func_split":
-            bins = {'fun': loadBins(self.args.exp_fun_bins), 'syn': loadBins(self.args.exp_syn_bins)}
+            bins = {
+                "fun": loadBins(self.args.exp_fun_bins),
+                "syn": loadBins(self.args.exp_syn_bins),
+            }
         elif mode == "syn_only":
             bins = loadBins(self.args.syn_bins_only)
         elif mode == "fun_only":
@@ -78,7 +91,12 @@ class DefaultRunner:
             bins = loadBins(self.args.exp_bins)
         return bins
 
-    def get_transformer(self, bins: Union[dict, list], legend, matrix) -> Pruner:
+    def get_transformer(
+        self,
+        bins: Union[dict[str, list[Any]], list[Any]],
+        legend: Legend,
+        matrix: SparseMatrix,
+    ) -> Pruner:
         """
         Retrieve the appropriate transformer based on the current run configuration.
 
@@ -108,7 +126,9 @@ class DefaultRunner:
             return FunctionalSplitPruner(self.runConfig, bins, legend, matrix)
         if mode == "fun_only" or mode == "syn_only":
             return StandardPruner(self.runConfig, bins, legend, matrix)
-        if mode == "syn_only":
-            return FunctionalSplitPruner(self.runConfig, bins, legend, matrix)
         if mode == "probabilistic":
             return ProbabilisticPruner(self.runConfig, legend, matrix)
+
+        raise IllegalArgumentException(
+            f"Unsupported run mode: {self.runConfig.run_type}"
+        )

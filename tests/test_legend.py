@@ -1,8 +1,9 @@
-import unittest
-import tempfile
 import os
-from raresim.common.legend import Legend, LegendReaderWriter
+import tempfile
+import unittest
+
 from raresim.common.exceptions import IllegalArgumentException
+from raresim.common.legend import Legend, LegendReaderWriter
 
 
 class TestLegend(unittest.TestCase):
@@ -58,7 +59,7 @@ class TestLegendReaderWriter(unittest.TestCase):
         """Create a temporary legend file for testing"""
         self.temp_dir = tempfile.mkdtemp()
         self.legend_file = os.path.join(self.temp_dir, "test.legend")
-        
+
         # Write a test legend file
         with open(self.legend_file, "w") as f:
             f.write("id\tposition\ta0\ta1\tfun\n")
@@ -90,20 +91,20 @@ class TestLegendReaderWriter(unittest.TestCase):
         legend = Legend(["id", "position", "a0", "a1"])
         legend.add_row(["rs111", "500", "T", "C"])
         legend.add_row(["rs222", "1500", "G", "A"])
-        
+
         # Write it
         output_file = os.path.join(self.temp_dir, "output.legend")
         LegendReaderWriter.write_legend(legend, output_file)
-        
+
         # Read it back
         loaded_legend = LegendReaderWriter.load_legend(output_file)
         self.assertEqual(loaded_legend.row_count(), 2)
         self.assertEqual(loaded_legend[0]["id"], "rs111")
         self.assertEqual(loaded_legend[1]["position"], "1500")
-        
+
         # Clean up
         os.remove(output_file)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
